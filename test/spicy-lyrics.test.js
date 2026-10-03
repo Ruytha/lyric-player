@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spicyToTtml, readCredit, isExpired, mayExport, SPICY_MAX_AGE } from '../src/spicy-lyrics.js';
 import { parseTTML } from '../src/ttml-parser.js';
-import handler, { pickTrack } from '../api/spicy-lyrics.js';
+import handler, { pickItunes } from '../api/spicy-lyrics.js';
 
 // The shape Spicy Lyrics answers with (developers.spicylyrics.org, and the
 // types in its open-source extension). Times are in seconds.
@@ -78,17 +78,18 @@ test('kept at most 30 days, and never exported', () => {
   assert.equal(mayExport(null), true);
 });
 
-test('the right song on Spotify', () => {
-  const t = (id, name, artist, ms) => ({ id, name, artists: [{ name: artist }], duration_ms: ms });
-  const results = [t('a', 'Levitating (feat. DaBaby)', 'Dua Lipa', 203064), t('b', 'Levitating', 'Dua Lipa', 203807), t('c', 'Levitating', 'Someone Else', 180000)];
-  assert.equal(pickTrack(results, { title: 'Levitating', artist: 'Dua Lipa', duration: 203.8 }).id, 'b');
-  assert.equal(pickTrack(results, { title: 'Levitating (feat. DaBaby)', artist: 'Dua Lipa' }).artists[0].name, 'Dua Lipa');
-  assert.equal(pickTrack(results, { title: 'Levitating', artist: 'Nobody' }), null);
-  assert.equal(pickTrack(results, { title: 'Levitating', artist: 'Dua Lipa', duration: 400 }), null, 'a different version');
+test('the right song on iTunes', () => {
+  const results = [
+    { kind: 'song', trackName: 'Levitating (feat. DaBaby)', artistName: 'Dua Lipa', trackTimeMillis: 203064 },
+    { kind: 'song', trackName: 'Levitating', artistName: 'Dua Lipa', trackTimeMillis: 203807 },
+    { kind: 'song', trackName: 'Levitating', artistName: 'Someone Else', trackTimeMillis: 180000 },
+  ];
+  assert.equal(pickItunes(results, { title: 'Levitating', artist: 'Dua Lipa', duration: 203 }).artistName, 'Dua Lipa');
+  assert.equal(pickItunes(results, { title: 'Levitating', artist: 'Nobody' }), null);
+  assert.equal(pickItunes(results, { title: 'Levitating', artist: 'Dua Lipa', duration: 400 }), null, 'a different version');
 });
 
-const KEYS = { SPICY_LYRICS_KEY: 'sl_sk_test', SPOTIFY_CLIENT_ID: 'cid', SPOTIFY_CLIENT_SECRET: 'csec' };
-function call(url, { origin = 'app://player', env = KEYS, fetches = {} } = {}) {
+function call(url, { origin = 'app://player', env = { SPICY_LYRICS_KEY: 'sl_sk_test' }, fetches = {} } = {}) {
   const saved = { ...process.env };
   Object.assign(process.env, env);
   if (!env.SPICY_LYRICS_KEY) delete process.env.SPICY_LYRICS_KEY;
@@ -96,7 +97,6 @@ function call(url, { origin = 'app://player', env = KEYS, fetches = {} } = {}) {
   const seen = [];
   globalThis.fetch = async (u, init) => {
     seen.push({ u: String(u), auth: init?.headers?.Authorization });
-    if (String(u).includes('accounts.spotify.com')) return { ok: true, status: 200, json: async () => ({ access_token: 'tok', expires_in: 3600 }) };
     const hit = Object.entries(fetches).find(([k]) => String(u).includes(k));
     const [status, body] = hit ? hit[1] : [404, {}];
     return { status, json: async () => body };
@@ -109,10 +109,11 @@ function call(url, { origin = 'app://player', env = KEYS, fetches = {} } = {}) {
   });
 }
 
-test('website endpoint: Spotify search → Spicy Lyrics, keys stay on the server', async () => {
+test('website endpoint: iTunes → song.link → Spicy Lyrics, key stays on the server', async () => {
   const { res, seen } = await call('/api/spicy-lyrics?title=Levitating&artist=Dua%20Lipa&duration=203', {
     fetches: {
-      'api.spotify.com/v1/search': [200, { tracks: { items: [{ id: '463CkQjx2Zk1yXoBuierM9', name: 'Levitating', artists: [{ name: 'Dua Lipa' }], album: { name: 'Future Nostalgia' }, duration_ms: 203807 }] } }],
+      'itunes.apple.com': [200, { results: [{ kind: 'song', trackName: 'Levitating', artistName: 'Dua Lipa', collectionName: 'Future Nostalgia', trackTimeMillis: 203807, trackViewUrl: 'https://music.apple.com/us/album/x?i=1' }] }],
+      'api.song.link': [200, { linksByPlatform: { spotify: { entityUniqueId: 'SPOTIFY_SONG::463CkQjx2Zk1yXoBuierM9' } } }],
       'api.spicylyrics.org/v1/lyrics/463CkQjx2Zk1yXoBuierM9': [200, syllableAnswer],
     },
   });
@@ -123,14 +124,12 @@ test('website endpoint: Spotify search → Spicy Lyrics, keys stay on the server
   assert.ok(parseTTML(res.body.ttml).lines.length === 2);
   assert.equal(res.headers['access-control-allow-origin'], 'app://player');
   assert.equal(seen.find((s) => s.u.includes('spicylyrics')).auth, 'Bearer sl_sk_test');
-  assert.equal(seen.find((s) => s.u.includes('api.spotify.com')).auth, 'Bearer tok');
   assert.ok(!JSON.stringify(res.body).includes('sl_sk_test'), 'the key never goes to the app');
 });
 
 test('website endpoint: other sites, no key, not found', async () => {
   assert.equal((await call('/api/spicy-lyrics?title=x', { origin: 'https://evil.example' })).res.code, 403);
   assert.equal((await call('/api/spicy-lyrics?title=x', { env: {} })).res.code, 501);
-  assert.equal((await call('/api/spicy-lyrics?title=x', { env: { SPICY_LYRICS_KEY: 'k' } })).res.code, 501, 'Spotify keys missing');
   const nf = await call('/api/spicy-lyrics?spotifyId=463CkQjx2Zk1yXoBuierM9', { fetches: { 'api.spicylyrics.org': [404, {}] } });
   assert.equal(nf.res.body.found, false);
 });
