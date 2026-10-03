@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.5.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Spicy Lyrics as a lyrics source: syllable-synced community syncs (plus Apple Music and Spotify syncs), searched first with Apple Music. Its credit shows under the lyrics, with links to the people who made the sync.",
+      "As Spicy Lyrics asks: its lyrics are refreshed after 30 days and can't be exported as .ttml files."
+    ]
+  },
+  {
     "version": "2.4.1",
     "date": "2026-10-03",
     "notes": [

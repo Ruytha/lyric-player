@@ -31,6 +31,7 @@ import { searchNetease, fetchNeteaseLyrics } from './netease.js';
 import { searchQQ, fetchQQLyrics, qrcLines } from './qq-music.js';
 import { lyricsMatch } from './auto-lyrics.js';
 import { showWhatsNew } from './whats-new.js';
+import { readCredit, isExpired, mayExport } from './spicy-lyrics.js';
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
@@ -573,6 +574,7 @@ setInterval(() => scrobbler.tick(audio.currentTime, !audio.paused && !audio.ende
 
 const syncEditor = new SyncEditor($('syncEditor'), {
   getTtml: () => ({ text: state.ttmlText, name: state.ttmlName, model: state.model }),
+  canExport: () => mayExport(state.lyricsCredit),
   time: () => clock.lyricTime,
   togglePlay,
   seek: (t) => seek(t - clock.offsetMs / 1000),
@@ -587,7 +589,7 @@ const syncEditor = new SyncEditor($('syncEditor'), {
 const lyricCard = new LyricCardDialog($('cardDialog'), {
   get: () => {
     const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
-    return { model: state.model, title: pick('title'), artist: pick('artist'), art: state.artUrl, time: clock.lyricTime, motionBg: () => lyricifyBg?.snapshot() || null };
+    return { model: state.model, title: pick('title'), artist: pick('artist'), art: state.artUrl, time: clock.lyricTime, motionBg: () => lyricifyBg?.snapshot() || null, credit: creditText(state.lyricsCredit) };
   },
   toast,
 });
@@ -643,7 +645,7 @@ async function sendMiniState() {
     title: pick('title'), artist: pick('artist'), art: miniArt.thumb,
     line: line && { text: line.text, begin: line.begin, end: line.end, words: line.mode === 'word' ? line.words.map((w) => ({ text: w.text, begin: w.begin, end: w.end, spaceBefore: w.spaceBefore })) : [] },
     next: next?.text || '', time: t, position: playback().position, duration: Number.isFinite(playback().duration) ? playback().duration : 0,
-    playing: playback().playing, message: state.model ? '' : 'No lyrics',
+    playing: playback().playing, message: state.model ? '' : 'No lyrics', credit: creditText(state.lyricsCredit),
   }).catch(() => {});
 }
 
@@ -694,6 +696,24 @@ function toggleLyrics() {
 
 function toggleTranslation() {
   settings.set('translation', !settings.get('translation'));
+}
+
+// Spicy Lyrics' terms: its credit shows wherever its lyrics are on screen.
+function creditText(c) {
+  if (!c?.provider) return '';
+  const who = [c.uploader && `uploaded by ${c.uploader.name}`, c.maker && `made by ${c.maker.name}`].filter(Boolean).join(', ');
+  return `Lyrics from ${c.provider}${who ? ` · ${who}` : ''}`;
+}
+
+function showCredit() {
+  const el = $('lyricsCredit');
+  const c = state.lyricsCredit;
+  el.hidden = !c?.provider || !state.model;
+  if (el.hidden) { el.textContent = ''; return; }
+  const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+  const link = (p) => (/^https:\/\//.test(p.url) ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name));
+  const parts = [c.uploader && `uploaded by ${link(c.uploader)}`, c.maker && `made by ${link(c.maker)}`].filter(Boolean);
+  el.innerHTML = `Lyrics from <a href="https://spicylyrics.org" target="_blank" rel="noopener">${esc(c.provider)}</a>${parts.length ? ` · ${parts.join(', ')}` : ''}`;
 }
 
 /** Where the shown lyrics came from; the menu offers to pick others. */
@@ -850,6 +870,7 @@ async function loadAudioFile(file, { artwork = null, save = true, lyricsComing =
     if (token !== state.loadToken) return; // switched to another song meanwhile
     if (fields.ttml) applyMeta(); // lyrics loaded earlier now belong to this song
     // Dropped a song we know: bring its lyrics back too.
+    if (saved?.ttml && isExpired(readCredit(saved.ttml))) saved = { ...saved, ttml: null };
     if (!lyricsComing && !fields.ttml && saved?.ttml && token === state.loadToken) {
       state.lyricsFor = id;
       loadTTMLText(saved.ttml, saved.ttmlName || 'lyrics.ttml', { save: false });
@@ -895,7 +916,9 @@ function loadTTMLText(text, name, { save = true, source = null } = {}) {
   const artist = withoutTranslatedNames(model.meta.artists).join(', ') || Object.values(model.agents).map((a) => a.name).filter(Boolean).join(' & ');
   state.ttmlMeta = { title: model.meta.title, artist: artist || null };
   if (save) state.lyricsFor = state.songId;
-  setLyricsSource(source);
+  state.lyricsCredit = readCredit(text);
+  setLyricsSource(source || (state.lyricsCredit?.provider === 'Spicy Lyrics' ? 'spicy' : null));
+  showCredit();
   applyMeta();
   const roman = settings.get('autoRoman') ? romanizeLocally(model) : null;
   renderer.setLyrics(model, 'No lyric lines found in this TTML file.');
@@ -1142,6 +1165,7 @@ async function openSong(id, { autoplay = false } = {}) {
   state.lyricsFor = id;
   queue.touch(id);
   let ttml = rec.ttml, ttmlName = rec.ttmlName;
+  if (ttml && isExpired(readCredit(ttml))) ttml = null; // Spicy Lyrics: fetched again after 30 days
   if (!ttml && rec.ttmlPath) {
     ttml = await window.lyricPlayerNative?.music('read-ttml', { path: rec.ttmlPath }).catch(() => null);
     ttmlName = rec.ttmlPath.split(/[\\/]/).pop();
@@ -1317,6 +1341,7 @@ function leaveExternal() {
 /** Nothing loaded (e.g. the followed app went away and following was turned off). */
 function clearSong() {
   state.model = null; state.ttmlName = null; state.ttmlText = null;
+  state.lyricsCredit = null; showCredit();
   state.tagMeta = {}; state.ttmlMeta = {}; state.fileMeta = {};
   renderer.setLyrics(null, '');
   setArtwork(null, { save: false });
@@ -1349,6 +1374,7 @@ function followPc(raw) {
   try { appOffset = Number(localStorage.getItem(pcAppOffsetKey(info.app))) || 0; } catch { /* storage unavailable */ }
   setOffset(Number.isFinite(prefs?.offset) ? prefs.offset : appOffset, false);
   state.model = null; state.ttmlName = null; state.ttmlText = null;
+  state.lyricsCredit = null; showCredit();
   pcState.lyricsNote = 'Looking for lyrics…';
   renderer.setLyrics(null, 'Looking for lyrics…');
   ui.setTranslation(false, state.showTranslation);
@@ -1376,7 +1402,8 @@ async function pcCover(token, info) {
 
 async function pcLyrics(token, info, duration) {
   const done = (note) => { pcState.lyricsNote = note; };
-  const saved = readPcLyrics().find((x) => x.key === state.external?.key);
+  let saved = readPcLyrics().find((x) => x.key === state.external?.key);
+  if (saved?.ttml && isExpired(readCredit(saved.ttml))) saved = null;
   if (saved?.ttml) {
     loadTTMLText(saved.ttml, saved.name || 'lyrics.ttml', { save: false, source: saved.source || null });
     done(`Lyrics${saved.source ? ` from ${SOURCE_NAMES[saved.source] || saved.source}` : ''} (saved)`);
@@ -1385,7 +1412,7 @@ async function pcLyrics(token, info, duration) {
   if (!info.title) { renderer.setLyrics(null, 'No song title from the app'); done(''); return; }
   if (!settings.get('autoLyrics')) { renderer.setLyrics(null, 'Press / to find lyrics for this song'); done('Automatic lyrics are off'); return; }
   try {
-    const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable() });
+    const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable(), song: { title: info.title, artist: info.artist, duration: duration > 0 ? duration : 0 } });
     if (token !== state.loadToken) return;
     const best = pickBestLyrics(results, { title: info.title, artist: info.artist, duration: duration > 0 ? duration : 0 });
     if (!best) { renderer.setLyrics(null, 'No lyrics found for this song — press / to search yourself'); done('No lyrics found. Press / in the player to search.'); return; }
@@ -1460,7 +1487,7 @@ async function autoLyrics(token, knownDuration = 0) {
   if (!info.title) { renderer.setLyrics(null, 'No lyrics saved for this song — drop a .ttml file, or press / to find them online'); return; }
   const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : knownDuration || 0;
   try {
-    const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable() });
+    const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable(), song: { ...info, duration } });
     if (token !== state.loadToken || id !== state.songId) return;
     const best = pickBestLyrics(results, { ...info, duration });
     if (!best) {

@@ -88,3 +88,15 @@ html.ios .lyric-search { padding-top: env(safe-area-inset-top); padding-bottom: 
 /* No element full screen on iPhone; the app already fills the screen. */
 html.ios #fullscreenBtn, html.ios #fullscreenItem { display: none !important; }
 html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+/* Lyrics credit (Spicy Lyrics' terms: shown wherever its lyrics are) */
+.lyrics-credit {
+  position: fixed; right: 22px; bottom: 14px; z-index: 4; max-width: min(560px, 60vw);
+  font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.55); text-align: right;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.lyrics-credit a { color: rgba(255, 255, 255, 0.8); text-decoration: none; }
+.lyrics-credit a:hover { text-decoration: underline; }
+.app.no-lyrics ~ .lyrics-credit, .app.no-lyrics .lyrics-credit { display: none; }
+.am-mode .lyrics-credit { right: auto; left: 50%; bottom: auto; top: calc(var(--p) * 272); transform: translateX(-50%); max-width: calc(var(--stage-w) - 40px); text-align: center; }
+html.ios.am-mode .lyrics-credit { top: calc(var(--p) * 272 + env(safe-area-inset-top)); }

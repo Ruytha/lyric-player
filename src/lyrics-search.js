@@ -12,6 +12,7 @@ import { searchNetease, probeNetease, fetchNeteaseLyrics, neteaseToTtml } from '
 import { searchQQ, probeQQ, fetchQQLyrics, qqToTtml } from './qq-music.js';
 import { searchAppleMusic, fetchAppleTtml } from './apple-music.js';
 import { searchBini, fetchBiniTtml } from './binilyrics.js';
+import { searchSpicy } from './spicy-lyrics.js';
 
 const DB_RAW = 'https://raw.githubusercontent.com/amll-dev/amll-ttml-db/main';
 const LRCLIB = 'https://lrclib.net/api';
@@ -197,9 +198,10 @@ export function lrcToTtml(lrc, { title = '', artists = [], duration = 0 } = {}) 
  * and enabled), AMLL DB, BiniLyrics, NetEase and QQ Music word-synced,
  * BiniLyrics line-timed, LRCLIB, then the other NetEase / QQ Music results.
  */
-export async function searchLyrics(query, { apple = false } = {}) {
-  const [am, amll, bini, netease, qq, lrclib] = await Promise.allSettled([
+export async function searchLyrics(query, { apple = false, song = null } = {}) {
+  const [am, spicy, amll, bini, netease, qq, lrclib] = await Promise.allSettled([
     apple ? searchAppleMusic(query) : Promise.resolve([]),
+    searchSpicy(query, song || {}),
     searchAmll(query),
     searchBini(query),
     searchNetease(query).then((r) => probeNetease(r)),
@@ -211,17 +213,20 @@ export async function searchLyrics(query, { apple = false } = {}) {
   return {
     results: [
       ...ok(am),
+      ...ok(spicy).filter((r) => r.wordSync),
       ...ok(amll),
       ...bl.filter((r) => r.wordSync),
       ...ne.filter((r) => r.wordSync),
       ...qm.filter((r) => r.wordSync),
       ...bl.filter((r) => !r.wordSync),
+      ...ok(spicy).filter((r) => !r.wordSync),
       ...ok(lrclib),
       ...ne.filter((r) => !r.wordSync),
       ...qm.filter((r) => !r.wordSync),
     ],
     errors: [
       am.status === 'rejected' ? `Apple Music: ${am.reason.message}` : null,
+      spicy.status === 'rejected' ? `Spicy Lyrics: ${spicy.reason.message}` : null,
       amll.status === 'rejected' ? `AMLL DB: ${amll.reason.message}` : null,
       bini.status === 'rejected' ? `BiniLyrics: ${bini.reason.message}` : null,
       netease.status === 'rejected' ? `NetEase: ${netease.reason.message}` : null,
@@ -232,10 +237,11 @@ export async function searchLyrics(query, { apple = false } = {}) {
 }
 
 /** Readable name of a result's source. */
-export const SOURCE_NAMES = { apple: 'Apple Music', amll: 'AMLL TTML DB', bini: 'BiniLyrics', netease: 'NetEase', qq: 'QQ Music', lrclib: 'LRCLIB' };
+export const SOURCE_NAMES = { apple: 'Apple Music', spicy: 'Spicy Lyrics', amll: 'AMLL TTML DB', bini: 'BiniLyrics', netease: 'NetEase', qq: 'QQ Music', lrclib: 'LRCLIB' };
 
 /** Returns TTML text for a search result. */
 export async function getTtml(result) {
+  if (result.source === 'spicy') return result.ttml;
   if (result.source === 'amll') return fetchAmllTtml(result);
   if (result.source === 'apple') return fetchAppleTtml(result.id);
   if (result.source === 'bini') return fetchBiniTtml(result);

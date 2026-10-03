@@ -64,6 +64,8 @@
     .bar-handle button:hover { background: rgba(255, 255, 255, 0.18); }
     .bar-handle svg { width: 14px; height: 14px; fill: currentColor; }
     .bar-handle .unlock-icon { display: none; }
+    .bar-credit { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.6); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9)); }
+    .bar-credit:empty { display: none; }
     body.bar.unlocked .bar-handle .lock-icon { display: none; }
     body.bar.unlocked .bar-handle .unlock-icon { display: block; }
 
@@ -104,6 +106,7 @@
     </div>
     <div class="line" id="barLine"></div>
     <div class="next" id="barNext"></div>
+    <div class="bar-credit" id="barCredit"></div>
   </div>
   <script type="module" src="src/mini.js"></script>
 </body>
