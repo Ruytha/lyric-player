@@ -20,3 +20,6 @@ ios-app/www/
 
 # Videos with copyrighted music: private, never committed or deployed
 private-videos/
+
+# Discord images (album art from the library)
+discord-art/
