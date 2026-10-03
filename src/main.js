@@ -32,6 +32,8 @@ import { searchQQ, fetchQQLyrics, qrcLines } from './qq-music.js';
 import { lyricsMatch } from './auto-lyrics.js';
 import { showWhatsNew } from './whats-new.js';
 import { showCredits } from './credits.js';
+import { lookupSongwriters } from './songwriters.js';
+import { EmojiReactions } from './emoji-reactions.js';
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
@@ -61,6 +63,8 @@ const state = {
   songId: null,        // library id of the current song (null for demo / URL audio)
   lyricsFor: null,     // song id the shown lyrics belong to
   pendingTtml: null,   // lyrics loaded before any song, attached when one arrives
+  writersTried: new WeakMap(), // model → "title|artist" looked up
+  foundWriters: new WeakMap(), // model → songwriters from MusicBrainz
   cover: null,         // Apple Music album for this song: { collectionId, album, artwork, square, tall, off, useArt }
   coverFor: null,      // song the automatic cover lookup ran for
   external: null,      // following another app on this PC: { key, app }
@@ -208,6 +212,7 @@ const renderer = new AmllLyricsRenderer($('lyrics'), {
     if (!playback().playing) togglePlay();
   },
 });
+const emoji = new EmojiReactions();
 renderer.setLyrics(null, document.documentElement.classList.contains('ios')
   ? 'Play a song in the Music app, or add your own songs and lyrics with ••• → Load new song'
   : 'Play a song in Spotify or Apple Music, drop a song and its .ttml here, or open your library with ☰');
@@ -239,6 +244,8 @@ settings.subscribe((key, value, s) => {
   renderer.apply(am ? { ...s, alignAnchor: 'top', alignPosition: Math.min(s.alignPosition, 0.35) * 0.3 } : s);
   if (key === null || key === 'layout') applyLayout(am);
   if (key === 'motionArt') applyCover();
+  if (key === null || key === 'emojiReactions') emoji.setEnabled(s.emojiReactions);
+  if (key === 'lookupWriters' && value) fillSongwriters();
   if (key === null || key.startsWith('discord')) updatePresence();
   if (key === 'autoArt' && value) autoCover();
   if (key === 'followPc' && pcState?.available) startSystemMedia(s.followPc);
@@ -698,6 +705,37 @@ function toggleTranslation() {
   settings.set('translation', !settings.get('translation'));
 }
 
+/** Songwriters and source shown after the last line. */
+function setLyricCredits(model) {
+  const source = state.lyricsSource;
+  renderer.setCredits({
+    songwriters: model.meta.songwriters?.length ? model.meta.songwriters : state.foundWriters.get(model) || [],
+    source: source ? sourceLabel(source) : null,
+    ttmlAuthor: model.meta.ttmlAuthor,
+  });
+}
+
+// Lyrics without songwriters: look them up (MusicBrainz) once the song's
+// title and artist are known.
+function fillSongwriters() {
+  const model = state.model;
+  if (!model || model.timing === 'none' || model.meta.songwriters?.length || !settings.get('lookupWriters')) return;
+  const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
+  const info = { title: pick('title'), artist: pick('artist') };
+  if (!info.title || !info.artist) return;
+  const key = `${info.title}|${info.artist}`;
+  if (state.writersTried.get(model) === key) return;
+  state.writersTried.set(model, key);
+  const d = playback().duration;
+  lookupSongwriters({ ...info, duration: Number.isFinite(d) && d > 0 ? d : 0 }).then((names) => {
+    if (!names.length || state.model !== model) return;
+    state.foundWriters.set(model, names);
+    setLyricCredits(model);
+    renderer.showCredits();
+    diagnostics.note(`songwriters from MusicBrainz for "${info.title}"`);
+  }).catch((e) => { state.writersTried.delete(model); diagnostics.error('songwriters', e); });
+}
+
 const OWN_SOURCES = { file: 'your own lyrics file', link: 'a TTML link', demo: 'the Lyric Player demo' };
 const sourceLabel = (source) => OWN_SOURCES[source] || SOURCE_NAMES[source] || source;
 
@@ -740,6 +778,7 @@ function metaFromFilename(name) {
 }
 
 function applyMeta() {
+  fillSongwriters();
   const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || null;
   ui.setMeta({ title: pick('title') || 'Unknown', artist: pick('artist') || 'Unknown Artist' });
   updateMediaSession(pick('title') || 'Unknown', pick('artist') || '');
@@ -903,8 +942,10 @@ function loadTTMLText(text, name, { save = true, source = null } = {}) {
   setLyricsSource(source);
   applyMeta();
   const roman = settings.get('autoRoman') ? romanizeLocally(model) : null;
-  renderer.setCredits({ songwriters: model.meta.songwriters, source: source ? sourceLabel(source) : null, ttmlAuthor: model.meta.ttmlAuthor });
+  setLyricCredits(model);
   renderer.setLyrics(model, 'No lyric lines found in this TTML file.');
+  emoji.setModel(model);
+  fillSongwriters();
   if (roman?.needsLookup && settings.get('romanization')) borrowRomanization(model);
   ui.setTranslation(model.hasTranslation, state.showTranslation);
   if (model.timing === 'none') toast('These lyrics have no timing — showing static lyrics.');
@@ -1087,6 +1128,7 @@ function frame(now) {
   if (!app.hidden && !windowHidden) {
     ui.update(media, dt, playing);
     if (!state.lyricsHidden) renderer.update(clock.lyricTime, dt, playing);
+    emoji.update(clock.lyricTime, playing);
     reactor.update(dt, playing);
     if (!glassWindowOk || !settings.get('macGlass')) background.update(dt, playing, reactor);
   }

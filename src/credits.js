@@ -13,6 +13,7 @@ const LYRICS_FROM = [
   ['NetEase Cloud Music', 'https://music.163.com'],
   ['QQ Music', 'https://y.qq.com'],
   ['LRCLIB', 'https://lrclib.net'],
+  ['MusicBrainz (songwriters)', 'https://musicbrainz.org'],
 ];
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);

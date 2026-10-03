@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.7.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Songwriters show for more songs: when the lyrics don’t list them, they’re looked up on MusicBrainz (Settings → Lyrics → Find songwriters online).",
+      "New Fun section in Settings with Emoji reactions: emoji float up when words like love, fire, money, stars or dance are sung."
+    ]
+  },
+  {
     "version": "2.6.1",
     "date": "2026-10-03",
     "notes": [

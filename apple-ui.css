@@ -104,3 +104,21 @@ html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none
 /* Songwriters and lyric source after the last line */
 .lyrics-credits { padding: 1.2em 0 0; font-size: max(13px, calc(var(--lyric-size) * var(--lyric-scale, 1) * 0.36)); font-weight: 600; line-height: 1.5; color: rgba(255, 255, 255, 0.45); letter-spacing: 0; }
 .lyrics-credits div + div { margin-top: 0.2em; font-weight: 500; color: rgba(255, 255, 255, 0.32); }
+
+/* Emoji reactions (Settings → Fun) */
+.emoji-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
+.emoji-float {
+  position: absolute; bottom: -80px; font-size: var(--size, 40px); line-height: 1;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+  animation: emoji-rise var(--dur, 3s) cubic-bezier(0.2, 0.6, 0.35, 1) both;
+  will-change: transform, opacity;
+}
+@keyframes emoji-rise {
+  0% { transform: translate(0, 0) scale(0.4) rotate(0); opacity: 0; }
+  12% { opacity: 1; transform: translate(calc(var(--drift) * 0.1), -12vh) scale(1.05) rotate(calc(var(--spin) * 0.2)); }
+  75% { opacity: 0.9; }
+  100% { transform: translate(var(--drift), -78vh) scale(0.85) rotate(var(--spin)); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes emoji-rise { 0%, 100% { opacity: 0; transform: translateY(-20vh); } 30%, 70% { opacity: 1; transform: translateY(-22vh); } }
+}

@@ -23,6 +23,7 @@ export const SCHEMA = [
   { key: 'autoLyrics', label: 'Find lyrics automatically', hint: 'When a song has no lyrics, search every source and use the best match', type: 'toggle', def: true },
   { key: 'translation', label: 'Translation', type: 'toggle', def: false },
   { key: 'romanization', label: 'Romanization', type: 'toggle', def: true },
+  { key: 'lookupWriters', label: 'Find songwriters online', hint: 'When the lyrics don’t list who wrote the song, look it up on MusicBrainz and show it after the last line', type: 'toggle', def: true },
   { key: 'autoRoman', label: 'Romanize when missing', hint: 'Korean and Japanese kana are romanized here; lines with kanji or Chinese characters borrow NetEase or QQ Music’s romanization for the same song', type: 'toggle', def: true },
 
   { section: 'Background' },
@@ -69,6 +70,9 @@ export const SCHEMA = [
   { key: 'lastfmAccount', type: 'custom', desktop: true },
   { key: 'lastfmKey', label: 'API key', type: 'text', def: '', placeholder: '32 characters', max: 40, desktop: true },
   { key: 'lastfmSecret', label: 'Shared secret', type: 'text', def: '', placeholder: '32 characters', max: 40, desktop: true, secret: true },
+
+  { section: 'Fun' },
+  { key: 'emojiReactions', label: 'Emoji reactions', hint: 'Emoji float up when words like love, fire, money, stars or dance are sung', type: 'toggle', def: false },
 
   { section: 'Interface' },
   { key: 'layout', label: 'Layout', type: 'choice', def: 'standard', options: [['standard', 'Standard'], ['apple', 'Apple Music']] },
