@@ -1,13 +1,13 @@
 {
-  "version": "2.4.0",
+  "version": "2.4.1",
   "windows": {
     "installer": {
-      "url": "",
+      "url": "https://www.mediafire.com/file/m0ty7pvejt09l7l/Lyric-Player-Setup-2.3.0.exe/file",
       "size": "107 MB",
       "file": "Lyric-Player-Setup-2.3.0.exe"
     },
     "portable": {
-      "url": "",
+      "url": "https://www.mediafire.com/file/flu0oirxsiv509j/Lyric-Player-2.3.0-portable.exe/file",
       "size": "107 MB",
       "file": "Lyric-Player-2.3.0-portable.exe"
     }

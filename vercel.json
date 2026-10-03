@@ -29,6 +29,11 @@
       "source": "/update/lyricviewer/",
       "destination": "/update/lyricviewer/index.html",
       "permanent": false
+    },
+    {
+      "source": "/download/lyricviewer",
+      "destination": "/download/lyricviewer/",
+      "permanent": false
     }
   ]
 }
