@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.9.1",
+    "date": "2026-10-03",
+    "notes": [
+      "Fixed the player column in 2.9.0: the cover slid off the left edge and the buttons sat on top of it."
+    ]
+  },
+  {
     "version": "2.9.0",
     "date": "2026-10-03",
     "notes": [
