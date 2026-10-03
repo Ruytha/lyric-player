@@ -99,7 +99,7 @@ function call(url, { origin = 'app://player', env = KEYS, fetches = {} } = {}) {
     if (String(u).includes('accounts.spotify.com')) return { ok: true, status: 200, json: async () => ({ access_token: 'tok', expires_in: 3600 }) };
     const hit = Object.entries(fetches).find(([k]) => String(u).includes(k));
     const [status, body] = hit ? hit[1] : [404, {}];
-    return { status, json: async () => body, text: async () => JSON.stringify(body) };
+    return { status, json: async () => body };
   };
   const res = { headers: {}, code: 0, body: null, setHeader(k, v) { this.headers[k] = v; }, status(c) { this.code = c; return this; }, json(b) { this.body = b; return this; }, end() { return this; } };
   return handler({ method: 'GET', url, headers: origin ? { origin } : {} }, res).then(() => {

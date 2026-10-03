@@ -68,10 +68,8 @@ async function spotify(path) {
 
 async function getJson(url, init = {}) {
   const r = await fetch(url, { ...init, headers: { 'User-Agent': UA, Accept: 'application/json', ...(init.headers || {}) }, signal: AbortSignal.timeout(9000) });
-  const text = await r.text().catch(() => '');
-  let body = null;
-  try { body = JSON.parse(text); } catch { /* not JSON */ }
-  return { status: r.status, body, text: body ? undefined : text.slice(0, 160) };
+  const body = await r.json().catch(() => null);
+  return { status: r.status, body };
 }
 
 export default async function handler(req, res) {
@@ -100,16 +98,14 @@ export default async function handler(req, res) {
       const clean = (s) => s.replace(/["()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
       const tries = title ? [`track:${clean(title)}${artist ? ` artist:${clean(artist)}` : ''}`, `${clean(title)} ${clean(artist)}`] : [q];
       let hit = null, busy = false;
-      const looked = [];
       for (const term of tries) {
         const sr = await spotify(`search?${new URLSearchParams({ q: term, type: 'track', limit: '10' })}`);
-        looked.push(`${sr.status}:${sr.body?.tracks?.items?.length ?? (sr.body?.error?.message || sr.text || 'no results')}`);
         if (sr.status === 429) { busy = true; break; }
         hit = pickTrack(sr.body?.tracks?.items || [], { title, artist, duration, q });
         if (hit) break;
       }
       if (busy) { res.status(503).json({ error: 'Spotify is busy; try again in a minute' }); return; }
-      if (!hit) { res.setHeader('cache-control', 'public, s-maxage=3600'); res.status(200).json({ found: false, reason: 'song not found on Spotify', searched: looked }); return; }
+      if (!hit) { res.setHeader('cache-control', 'public, s-maxage=3600'); res.status(200).json({ found: false, reason: 'song not found on Spotify' }); return; }
       spotifyId = hit.id;
       song = { title: hit.name, artists: (hit.artists || []).map((a) => a.name), album: hit.album?.name || '', duration: (hit.duration_ms || 0) / 1000 };
     }
