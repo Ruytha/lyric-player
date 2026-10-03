@@ -88,3 +88,19 @@ html.ios .lyric-search { padding-top: env(safe-area-inset-top); padding-bottom: 
 /* No element full screen on iPhone; the app already fills the screen. */
 html.ios #fullscreenBtn, html.ios #fullscreenItem { display: none !important; }
 html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+
+/* Credits */
+.cr-maker { display: flex; align-items: center; gap: 18px; padding: 10px 0 16px; }
+.cr-maker img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: none; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); }
+.cr-name { font-size: 22px; font-weight: 700; }
+.cr-role { font-size: 14px; color: rgba(255, 255, 255, 0.6); margin-top: 2px; }
+.cr-site { display: inline-block; margin-top: 6px; font-size: 14px; }
+.credits .wn-body a { color: #fa586a; text-decoration: none; }
+.credits .wn-body a:hover { text-decoration: underline; }
+.credits .wn-body li span { color: rgba(255, 255, 255, 0.5); }
+.credits .wn-body li span::before { content: '— '; }
+.cr-note { margin: 12px 0 4px; font-size: 12.5px; line-height: 1.45; color: rgba(255, 255, 255, 0.45); }
+
+/* Songwriters and lyric source after the last line */
+.lyrics-credits { padding: 1.2em 0 0; font-size: max(13px, calc(var(--lyric-size) * var(--lyric-scale, 1) * 0.36)); font-weight: 600; line-height: 1.5; color: rgba(255, 255, 255, 0.45); letter-spacing: 0; }
+.lyrics-credits div + div { margin-top: 0.2em; font-weight: 500; color: rgba(255, 255, 255, 0.32); }

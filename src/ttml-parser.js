@@ -5,7 +5,7 @@
 // Model:
 // {
 //   timing: 'word' | 'line' | 'none',
-//   duration, meta: { title, artists[], album },
+//   duration, meta: { title, artists[], album, songwriters[], ttmlAuthor },
 //   agents: { [id]: { id, type, name } }, primaryAgent,
 //   hasTranslation,
 //   lines: [{
@@ -323,7 +323,7 @@ export function parseTTML(text) {
 
   // Agents & metadata
   const agents = {};
-  const meta = { title: null, artists: [], album: null };
+  const meta = { title: null, artists: [], album: null, songwriters: [], ttmlAuthor: null };
   const headTranslations = {};
   const headRoman = {};
   if (head) {
@@ -342,7 +342,12 @@ export function parseTTML(text) {
       if (key === 'musicName' && !meta.title) meta.title = value;
       else if (key === 'artists') meta.artists.push(value);
       else if (key === 'album' && !meta.album) meta.album = value;
+      else if (/^(songwriters?|lyricists?|composers?)$/i.test(key)) meta.songwriters.push(...value.split(/\s*[,;/、]\s*/));
+      else if (key === 'ttmlAuthorGithubLogin' && !meta.ttmlAuthor) meta.ttmlAuthor = value;
     }
+    // Apple Music: <iTunesMetadata><songwriters><songwriter>Name</songwriter>…
+    for (const w of descendants(head, 'songwriter')) meta.songwriters.push(textContent(w).trim());
+    meta.songwriters = [...new Set(meta.songwriters.filter(Boolean))];
     // Apple-style <translations><translation><text for="L1">…</text></translation></translations>
     for (const tr of descendants(head, 'translation')) {
       for (const t of descendants(tr, 'text')) {

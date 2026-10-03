@@ -233,3 +233,11 @@ test('end-to-end: examples/demo.ttml (Apple-style, placeholder lyrics)', async (
   assert.ok(m.hasTranslation);
   assert.deepEqual([...new Set(m.lines.map((l) => l.songPart))], ['Verse', 'Chorus']);
 });
+
+test('songwriters from Apple and AMLL heads', () => {
+  const apple = parseTTML(`<tt xmlns="http://www.w3.org/ns/ttml"><head><metadata><iTunesMetadata xmlns="http://music.apple.com/lyric-ttml-internal"><songwriters><songwriter>Dua Lipa</songwriter><songwriter>Sarah Hudson</songwriter></songwriters></iTunesMetadata></metadata></head><body><div><p begin="1" end="2">Hi</p></div></body></tt>`);
+  assert.deepEqual(apple.meta.songwriters, ['Dua Lipa', 'Sarah Hudson']);
+  const amll = parseTTML(`<tt xmlns="http://www.w3.org/ns/ttml" xmlns:amll="http://www.example.com/ns/amll"><head><metadata><amll:meta key="songwriters" value="A, B"/><amll:meta key="ttmlAuthorGithubLogin" value="someone"/></metadata></head><body><div><p begin="1" end="2">Hi</p></div></body></tt>`);
+  assert.deepEqual(amll.meta.songwriters, ['A', 'B']);
+  assert.equal(amll.meta.ttmlAuthor, 'someone');
+});

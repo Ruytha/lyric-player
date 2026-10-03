@@ -31,6 +31,7 @@ import { searchNetease, fetchNeteaseLyrics } from './netease.js';
 import { searchQQ, fetchQQLyrics, qrcLines } from './qq-music.js';
 import { lyricsMatch } from './auto-lyrics.js';
 import { showWhatsNew } from './whats-new.js';
+import { showCredits } from './credits.js';
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
@@ -196,6 +197,7 @@ const ui = new PlayerUI(audio, {
       case 'mini': toggleMini(); break;
       case 'bar': toggleBar(); break;
       case 'whats-new': showWhatsNew({ force: true }); break;
+      case 'credits': showCredits(); break;
     }
   },
 });
@@ -576,9 +578,9 @@ const syncEditor = new SyncEditor($('syncEditor'), {
   time: () => clock.lyricTime,
   togglePlay,
   seek: (t) => seek(t - clock.offsetMs / 1000),
-  preview: (text) => loadTTMLText(text, state.ttmlName || 'lyrics.ttml', { save: false }),
+  preview: (text) => loadTTMLText(text, state.ttmlName || 'lyrics.ttml', { save: false, source: state.lyricsSource }),
   save: (text) => {
-    loadTTMLText(text, state.ttmlName || 'lyrics.ttml', { save: !!state.songId || !!state.external });
+    loadTTMLText(text, state.ttmlName || 'lyrics.ttml', { save: !!state.songId || !!state.external, source: state.lyricsSource });
     diagnostics.note('timing edited and saved');
   },
   toast,
@@ -696,11 +698,14 @@ function toggleTranslation() {
   settings.set('translation', !settings.get('translation'));
 }
 
+const OWN_SOURCES = { file: 'your own lyrics file', link: 'a TTML link', demo: 'the Lyric Player demo' };
+const sourceLabel = (source) => OWN_SOURCES[source] || SOURCE_NAMES[source] || source;
+
 /** Where the shown lyrics came from; the menu offers to pick others. */
 function setLyricsSource(source) {
   state.lyricsSource = source;
   const item = document.querySelector('[data-action="find-lyrics"]');
-  if (item) item.textContent = source ? `Lyrics from ${SOURCE_NAMES[source] || source}. Wrong? Find others…` : 'Find lyrics online…';
+  if (item) item.textContent = source && !OWN_SOURCES[source] ? `Lyrics from ${sourceLabel(source)}. Wrong? Find others…` : 'Find lyrics online…';
 }
 
 // Romanization borrowed from NetEase / QQ Music for lines with kanji or
@@ -852,7 +857,7 @@ async function loadAudioFile(file, { artwork = null, save = true, lyricsComing =
     // Dropped a song we know: bring its lyrics back too.
     if (!lyricsComing && !fields.ttml && saved?.ttml && token === state.loadToken) {
       state.lyricsFor = id;
-      loadTTMLText(saved.ttml, saved.ttmlName || 'lyrics.ttml', { save: false });
+      loadTTMLText(saved.ttml, saved.ttmlName || 'lyrics.ttml', { save: false, source: saved.lyricsSource || null });
       toast(`Lyrics restored for ${saved.title || file.name}`);
     }
   }
@@ -898,21 +903,22 @@ function loadTTMLText(text, name, { save = true, source = null } = {}) {
   setLyricsSource(source);
   applyMeta();
   const roman = settings.get('autoRoman') ? romanizeLocally(model) : null;
+  renderer.setCredits({ songwriters: model.meta.songwriters, source: source ? sourceLabel(source) : null, ttmlAuthor: model.meta.ttmlAuthor });
   renderer.setLyrics(model, 'No lyric lines found in this TTML file.');
   if (roman?.needsLookup && settings.get('romanization')) borrowRomanization(model);
   ui.setTranslation(model.hasTranslation, state.showTranslation);
   if (model.timing === 'none') toast('These lyrics have no timing — showing static lyrics.');
   if (save) {
     if (state.external) savePcLyrics(state.external.key, { ttml: text, name, source });
-    else if (state.songId) { remember({ ttmlName: name, ttml: text }); autoCover(); }
-    else if (!state.audioName) state.pendingTtml = { ttmlName: name, ttml: text };
+    else if (state.songId) { remember({ ttmlName: name, ttml: text, lyricsSource: source }); autoCover(); }
+    else if (!state.audioName) state.pendingTtml = { ttmlName: name, ttml: text, lyricsSource: source };
   }
   return true;
 }
 
 async function loadTTMLFile(file) {
   try {
-    loadTTMLText(await file.text(), file.name);
+    loadTTMLText(await file.text(), file.name, { source: 'file' });
   } catch (e) {
     toast(`Couldn't read ${file.name}: ${e.message}`, { error: true });
   }
@@ -938,7 +944,7 @@ async function loadFromQuery() {
     try {
       const res = await fetch(ttmlUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      loadTTMLText(await res.text(), decodeURIComponent(ttmlUrl.split('/').pop().split('?')[0]) || 'lyrics.ttml');
+      loadTTMLText(await res.text(), decodeURIComponent(ttmlUrl.split('/').pop().split('?')[0]) || 'lyrics.ttml', { source: 'link' });
     } catch (e) {
       toast(`Couldn't load TTML from URL: ${e.message}`, { error: true });
     }
@@ -959,7 +965,7 @@ async function loadDemo() {
   leaveExternal();
   const art = await buildDemoArtwork();
   state.songId = null;
-  loadTTMLText(buildDemoTTML(), 'demo.ttml', { save: false });
+  loadTTMLText(buildDemoTTML(), 'demo.ttml', { save: false, source: 'demo' });
   await loadAudioFile(buildDemoAudio(), { artwork: URL.createObjectURL(art), save: false, lyricsComing: true });
 }
 
@@ -1141,13 +1147,14 @@ async function openSong(id, { autoplay = false } = {}) {
   state.pendingTtml = null;
   state.lyricsFor = id;
   queue.touch(id);
-  let ttml = rec.ttml, ttmlName = rec.ttmlName;
+  let ttml = rec.ttml, ttmlName = rec.ttmlName, lyricsSource = rec.lyricsSource || null;
   if (!ttml && rec.ttmlPath) {
     ttml = await window.lyricPlayerNative?.music('read-ttml', { path: rec.ttmlPath }).catch(() => null);
     ttmlName = rec.ttmlPath.split(/[\\/]/).pop();
+    lyricsSource = 'file';
     if (token !== state.loadToken) return false;
   }
-  if (ttml) loadTTMLText(ttml, ttmlName || 'lyrics.ttml', { save: false });
+  if (ttml) loadTTMLText(ttml, ttmlName || 'lyrics.ttml', { save: false, source: lyricsSource });
   else { state.model = null; state.ttmlName = null; state.ttmlMeta = {}; renderer.setLyrics(null, settings.get('autoLyrics') ? 'Looking for lyrics…' : 'No lyrics saved for this song — drop a .ttml file, or press / to find them online'); }
   if (rec.path) setAudioSource(mediaUrl(rec.path), rec.audioName || rec.path.split(/[\\/]/).pop(), { owned: false });
   else setAudioSource(URL.createObjectURL(rec.audio), rec.audioName || 'audio', { owned: true });
@@ -1379,7 +1386,7 @@ async function pcLyrics(token, info, duration) {
   const saved = readPcLyrics().find((x) => x.key === state.external?.key);
   if (saved?.ttml) {
     loadTTMLText(saved.ttml, saved.name || 'lyrics.ttml', { save: false, source: saved.source || null });
-    done(`Lyrics${saved.source ? ` from ${SOURCE_NAMES[saved.source] || saved.source}` : ''} (saved)`);
+    done(`Lyrics${saved.source ? ` from ${sourceLabel(saved.source)}` : ''} (saved)`);
     return;
   }
   if (!info.title) { renderer.setLyrics(null, 'No song title from the app'); done(''); return; }

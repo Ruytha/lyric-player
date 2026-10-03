@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.6.0",
+    "date": "2026-10-03",
+    "notes": [
+      "The songwriters are shown after the last line, as in Apple Music, when the lyrics include them.",
+      "Under them, where the lyrics came from (Apple Music, AMLL TTML DB, NetEase, your own file…), with the TTML author for AMLL TTML DB lyrics.",
+      "New Credits page in the ••• menu."
+    ]
+  },
+  {
     "version": "2.5.1",
     "date": "2026-10-03",
     "notes": [

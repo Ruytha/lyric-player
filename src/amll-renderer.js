@@ -32,6 +32,7 @@ export class AmllLyricsRenderer {
     this.relayoutTimer = 0;
     this.playing = null;
     this.lastT = null;
+    this.credits = null;
 
     // A heavier/lighter weight or a web font finishing to load changes line
     // heights; let AMLL re-measure.
@@ -55,6 +56,27 @@ export class AmllLyricsRenderer {
     } else {
       this.player.setLyricLines([]);
     }
+    this.showCredits();
+  }
+
+  /** Songwriters and where the lyrics came from, after the last line. */
+  setCredits(credits) {
+    this.credits = credits;
+  }
+
+  showCredits() {
+    const el = this.player.getBottomLineElement();
+    el.textContent = '';
+    const c = this.credits;
+    if (!this.useAmll || !c) return;
+    const box = document.createElement('div');
+    box.className = 'lyrics-credits';
+    const row = (text) => { const d = document.createElement('div'); d.textContent = text; box.appendChild(d); };
+    const names = c.songwriters || [];
+    if (names.length) row(`Written by: ${names.length > 1 ? `${names.slice(0, -1).join(', ')} & ${names.at(-1)}` : names[0]}`);
+    if (c.source) row(`Lyrics from ${c.source}${c.ttmlAuthor ? ` · TTML by @${c.ttmlAuthor}` : ''}`);
+    else if (c.ttmlAuthor) row(`TTML by @${c.ttmlAuthor}`);
+    if (box.childElementCount) el.appendChild(box);
   }
 
   lines() {
