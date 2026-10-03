@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.10.2",
+    "date": "2026-10-03",
+    "notes": [
+      "Discord shows animated covers on its own now. The \"Website for animated covers\" box is gone."
+    ]
+  },
+  {
     "version": "2.10.1",
     "date": "2026-10-03",
     "notes": [

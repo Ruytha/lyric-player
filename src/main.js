@@ -565,7 +565,8 @@ async function sendPresence() {
     }
     const c = state.cover;
     if (s.discordCover !== 'none' && c?.artwork) activity.image = artworkAt(c.artwork, 512);
-    const site = (s.discordSite || s.site || UPDATE_SITE).trim().replace(/\/+$/, '');
+    // The update site also turns animated covers into GIFs for Discord.
+    const site = (s.site || UPDATE_SITE).trim().replace(/\/+$/, '');
     if (s.discordCover === 'animated' && c?.square && !c.off && /^https:\/\/[^\s/]+/.test(site)) {
       animated = `${site}/api/cover-gif?id=${c.collectionId}&sf=us`;
     }

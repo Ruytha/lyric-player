@@ -84,7 +84,6 @@ export const SCHEMA = [
   { key: 'discordTime', label: 'Song length and progress', type: 'toggle', def: true, desktop: true },
   { key: 'discordPaused', label: 'Show while paused', type: 'toggle', def: false, desktop: true },
   { key: 'discordCover', label: 'Cover', type: 'choice', def: 'animated', options: [['animated', 'Animated'], ['still', 'Still'], ['none', 'None']], desktop: true },
-  { key: 'discordSite', label: 'Website for animated covers', hint: 'Your deployed Lyric Player site (it turns animated covers into GIFs for Discord). Without it the still cover is shown', type: 'text', def: '', placeholder: 'https://your-site.vercel.app', max: 200, desktop: true },
 
   { section: 'Last.fm', desktop: true },
   { key: 'lastfm', label: 'Scrobble to Last.fm', hint: 'Adds songs to your Last.fm profile once you’ve heard half (or 4 minutes)', type: 'toggle', def: false, desktop: true },
