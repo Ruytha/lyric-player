@@ -10,3 +10,6 @@ desktop/dist*/
 
 # Local tooling
 .claude/
+
+# Source exports for building on another computer
+lyric-player-source/
