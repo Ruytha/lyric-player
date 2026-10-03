@@ -43,7 +43,11 @@ export const SCHEMA = [
   { key: 'macGlass', label: 'Liquid Glass window', hint: 'macOS 26: the window becomes real Liquid Glass with your desktop showing through, instead of the cover background', type: 'toggle', def: false, desktop: true, mac: true },
 
   { section: 'Playback' },
+  { key: 'automix', label: 'AutoMix', hint: 'Like Apple Music: songs blend into each other in time with the beat, the next one sped up or slowed down a little to match. Your own songs; replaces Crossfade', type: 'toggle', def: false },
   { key: 'crossfade', label: 'Crossfade', hint: 'Your own songs fade into the next one', type: 'range', min: 0, max: 12, step: 1, def: 0, fmt: (v) => (v ? `${v} s` : 'Off') },
+  { key: 'eqOn', label: 'Equalizer', type: 'toggle', def: false },
+  { key: 'eqRow', type: 'custom' },
+  { key: 'eqGains', type: 'text', def: '0,0,0,0,0,0,0,0,0,0', max: 100, hidden: true },
   { key: 'levelVolume', label: 'Even out volume', hint: 'Quiet songs are turned up and loud ones down, so every song plays about as loud (your own songs)', type: 'toggle', def: false },
   { key: 'karaoke', label: 'Karaoke', hint: 'Turns the lead vocal down on your own songs. Works best on songs with the voice in the middle; some echo of it stays', type: 'toggle', def: false },
   { key: 'smartShuffle', label: 'Smart shuffle', hint: 'Shuffle plays songs you haven’t heard lately first and mixes up the artists', type: 'toggle', def: true },

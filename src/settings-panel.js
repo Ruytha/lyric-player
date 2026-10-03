@@ -66,6 +66,7 @@ export class SettingsPanel {
         continue;
       }
       const row = h('div', `set-row set-${s.type}`);
+      if (s.hidden) continue; // stored, but edited elsewhere
       if (s.type === 'custom') {
         this.custom[s.key]?.(row);
         group.appendChild(row);

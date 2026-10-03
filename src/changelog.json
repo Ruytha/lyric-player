@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.10.0",
+    "date": "2026-10-03",
+    "notes": [
+      "AutoMix, like Apple Music: your songs blend into each other in time with the beat. The next song is sped up or slowed down a little to match, comes in on its first beat, the bass swaps halfway, and its speed eases back to normal after (Settings → Playback).",
+      "Equalizer: 10 bands with presets like Bass Booster, Vocal Booster, Late Night and Rock (••• → Equalizer…, or Settings → Playback).",
+      "Crossfade no longer has a short gap when the next song starts."
+    ]
+  },
+  {
     "version": "2.9.1",
     "date": "2026-10-03",
     "notes": [

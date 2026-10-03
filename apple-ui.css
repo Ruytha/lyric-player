@@ -291,3 +291,32 @@ html.glass #menu .mi-offset .offset-val {
 html.quizzing #lyrics { filter: blur(18px); opacity: 0.35; transition: filter .4s, opacity .4s; pointer-events: none; }
 .hk-keys { flex: none; display: inline-flex; gap: 3px; }
 .hk-keys kbd { margin-left: 0; }
+
+/* Equalizer */
+.eq-panel { width: min(640px, 100%); }
+.eq-panel .card-head { gap: 12px; }
+.eq-panel .card-head h2 { margin-right: auto; }
+.eq-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.eq-presets .st-chip[disabled] { display: none; }
+.eq-presets .st-chip[data-preset="custom"][aria-selected="true"] { display: inline-block; }
+.eq-bands { display: grid; grid-template-columns: 34px repeat(10, 1fr); gap: 4px; align-items: stretch; height: 230px; padding: 4px 0 2px; transition: opacity .2s; }
+.eq-bands.off { opacity: 0.45; }
+.eq-scale { display: flex; flex-direction: column; justify-content: space-between; padding: 22px 0 22px; font-size: 11px; color: rgba(255, 255, 255, 0.4); font-variant-numeric: tabular-nums; }
+.eq-band { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.eq-band output { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.7); font-variant-numeric: tabular-nums; }
+.eq-band span { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.5); }
+.eq-band input[type="range"] {
+  -webkit-appearance: none; appearance: none; writing-mode: vertical-lr; direction: rtl;
+  flex: 1; width: 26px; margin: 0; background: none; cursor: pointer;
+}
+.eq-band input[type="range"]::-webkit-slider-runnable-track {
+  width: 5px; border-radius: 3px;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.85) var(--p, 50%), rgba(255, 255, 255, 0.16) var(--p, 50%));
+}
+.eq-band input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; margin-left: -7.5px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+.eq-band input[type="range"]::-moz-range-track { width: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); }
+.eq-band input[type="range"]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; }
+.eq-note { margin: 12px 0 0; font-size: 12.5px; color: rgba(255, 255, 255, 0.55); }

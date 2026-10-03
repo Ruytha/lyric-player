@@ -43,6 +43,8 @@ import { translateModel } from './translate.js';
 import { LyricClip } from './lyric-clip.js';
 import { lyricsPlainText } from './lyric-index.js';
 import { buildHotkeysRow, buildRemoteRow, applyLyricLook } from './extras-ui.js';
+import { analyzeUrl, planMix, alignedPosition } from './automix.js';
+import { showEqualizer, parseGains, presetOf, EQ_PRESETS } from './eq-ui.js';
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
@@ -219,6 +221,7 @@ const ui = new PlayerUI(audio, {
       case 'translate': translateLyrics(); break;
       case 'clip': lyricClip.open(); break;
       case 'karaoke': settings.set('karaoke', !settings.get('karaoke')); break;
+      case 'eq': openEqualizer(); break;
       case 'sleep': sleep.cycle(); break;
       case 'amll-submit': submitToAmll(); break;
     }
@@ -247,6 +250,12 @@ const settingsPanel = new SettingsPanel($('settingsSheet'), settings, {
     lastfmAccount: (row) => buildLastfmRow(row, { settings, toast }),
     about: (row) => buildAboutRow(row, { settings, toast }),
     hotkeysInfo: (row) => buildHotkeysRow(row, { native }),
+    eqRow: (row) => {
+      row.innerHTML = '<div class="set-head"><span class="set-hint eq-now"></span><button type="button" class="pill pill-small pill-ghost" data-eq>Adjust…</button></div>';
+      row.querySelector('[data-eq]').addEventListener('click', openEqualizer);
+      updateEqRow = () => { const p = presetOf(parseGains(settings.get('eqGains'))); row.querySelector('.eq-now').textContent = p === 'custom' ? 'Your own settings' : EQ_PRESETS[p][0]; };
+      updateEqRow();
+    },
     remoteInfo: (row) => { refreshRemoteRow = buildRemoteRow(row, { native, settings, toast }); },
   },
 });
@@ -267,6 +276,7 @@ settings.subscribe((key, value, s) => {
   if (key === 'motionArt') applyCover();
   if (key === null || key === 'karaoke') { fx.setKaraoke(s.karaoke); $('karaokeItem')?.setAttribute('aria-checked', String(!!s.karaoke)); }
   if (key === null || key === 'levelVolume') fx.setLevel(s.levelVolume);
+  if (key === null || key === 'eqOn' || key === 'eqGains') { fx.setEq(s.eqOn, parseGains(s.eqGains)); updateEqRow?.(); }
   if (key === null || key === 'emojiWords') emoji.setCustomWords(s.emojiWords);
   if (key === null || key === 'lyricFont' || key === 'lyricColor') applyLyricLook(s, { art: () => state.artUrl }).then(() => renderer.remeasure());
   if (key === null || key === 'smartShuffle') queue.smart = s.smartShuffle ? shuffleInfo : null;
@@ -296,7 +306,7 @@ settings.subscribe((key, value, s) => {
   $('bg').style.setProperty('--dim', s.bgDim);
   $('bg').classList.toggle('amll-mode', useAmll);
   $('bg').classList.toggle('lyricify-mode', useLyricify);
-  reactor.enabled = s.bgReact > 0 || s.bgPulse > 0 || s.karaoke || s.levelVolume || s.crossfade > 0;
+  reactor.enabled = s.bgReact > 0 || s.bgPulse > 0 || s.karaoke || s.levelVolume || s.crossfade > 0 || s.automix || s.eqOn;
   if (reactor.enabled && !audio.paused) reactor.attach();
 
   setGlassEnabled(s.glass);
@@ -889,6 +899,8 @@ function setAudioSource(src, name, { owned = false } = {}) {
   }
   fx.newSong();
   state.crossfaded = false;
+  state.mix = null;
+  audio.playbackRate = 1;
   state.audioUrl = src;
   state.audioOwned = owned;
   state.audioName = name;
@@ -1502,25 +1514,146 @@ startSystemMedia(!!settings.get('followPc'));
 // Crossfade (Settings → Playback): the end of a song fades out on a second
 // player while the next one fades in. Own songs only.
 
-function hasNextSong() {
-  return queue.repeat !== 'one' && (queue.pos + 1 < queue.items.length || (queue.repeat === 'all' && queue.items.length > 1));
+/** The song that plays after this one, without moving the queue. */
+function nextQueuedId() {
+  if (queue.repeat === 'one') return null;
+  if (queue.pos + 1 < queue.items.length) return queue.items[queue.pos + 1];
+  if (queue.repeat === 'all' && queue.items.length > 1) return queue.items[0];
+  return null;
 }
-setInterval(() => {
-  const secs = settings.get('crossfade');
-  if (!secs || state.external || state.crossfaded || !fx.ready || audio.paused || !Number.isFinite(audio.duration)) return;
-  const left = audio.duration - audio.currentTime;
-  if (left > secs || left < 0.5 || audio.duration < secs * 3 || !hasNextSong()) return;
+const hasNextSong = () => !!nextQueuedId();
+
+/** Hands the ending song to the second player, then moves the queue on. */
+async function handOver(secs, opts = {}) {
   state.crossfaded = true;
   const url = state.audioUrl;
-  fx.startTail(url, audio.currentTime, Math.min(secs, left), () => {
+  const ok = await fx.startTail(url, () => audio.currentTime, () => {
     if (state.revokeAfterFade === url) { URL.revokeObjectURL(url); state.revokeAfterFade = null; }
   });
-  fx.fadeTo(0, 0.05);
-  const fadeIn = () => fx.fadeTo(1, secs);
+  if (!ok || state.audioUrl !== url) { fx.fadeTo(1, 0.05); return false; }
+  fx.tailOut(secs, opts);
+  state.mixStarted = performance.now();
+  const fadeIn = () => {
+    const left = Math.max(1, secs - (performance.now() - state.mixStarted) / 1000);
+    if (opts.onIn) opts.onIn(left); else fx.mainIn(left, opts);
+  };
   audio.addEventListener('playing', fadeIn, { once: true });
-  setTimeout(() => { audio.removeEventListener('playing', fadeIn); if (fx.fade?.gain.value < 0.5) fx.fadeTo(1, 1); }, 4000);
+  // If the next song is slow to start, don't leave the player silent.
+  setTimeout(() => { audio.removeEventListener('playing', fadeIn); if (fx.fade?.gain.value < 0.5) fx.mainIn(1); }, 5000);
   playNext({ auto: true });
-}, 200);
+  return true;
+}
+
+// Crossfade (fixed length, no beat matching).
+setInterval(() => {
+  const secs = settings.get('crossfade');
+  if (settings.get('automix') || !secs || state.external || state.crossfaded || !fx.ready || audio.paused || !Number.isFinite(audio.duration)) return;
+  const left = audio.duration - audio.currentTime;
+  if (left > secs + 0.4 || left < 0.8 || audio.duration < secs * 3 || !hasNextSong()) return;
+  handOver(Math.min(secs, left - 0.3));
+}, 100);
+
+// ---------------------------------------------------------------------------
+// AutoMix (Settings → Playback): like Apple Music. Both songs are measured
+// (automix.js), the mix starts on a beat of the ending song, the next song is
+// sped up or slowed down a little so the beats line up, comes in on its first
+// beat, the bass swaps halfway, and its speed glides back to normal after.
+
+const mixCache = new Map(); // song id → Promise<analysis | null>
+function analysisFor(id, url) {
+  if (!mixCache.has(id)) {
+    mixCache.set(id, analyzeUrl(url).catch((e) => { diagnostics.error('automix', e); return null; }));
+    while (mixCache.size > 24) mixCache.delete(mixCache.keys().next().value);
+  }
+  return mixCache.get(id);
+}
+
+async function songUrl(id) {
+  const rec = await library.get(id).catch(() => null);
+  if (rec?.audio) return { url: URL.createObjectURL(rec.audio), owned: true };
+  if (rec?.path) return { url: mediaUrl(rec.path), owned: false };
+  return null;
+}
+
+async function prepareMix(forId) {
+  const m = { forId, ready: false };
+  state.mix = m;
+  const nextId = nextQueuedId();
+  if (!nextId || audio.duration > 15 * 60) return; // long recordings: plain crossfade timing
+  const a = await analysisFor(forId, state.audioUrl);
+  const u = await songUrl(nextId);
+  if (!u) return;
+  const b = await analysisFor(nextId, u.url);
+  if (u.owned) URL.revokeObjectURL(u.url);
+  if (state.mix !== m || !a || !b) return;
+  Object.assign(m, { nextId, a, b, plan: planMix(a, b), ready: true });
+  diagnostics.note(`automix: ${a.bpm.toFixed(1)} → ${b.bpm.toFixed(1)} BPM, ×${m.plan.rate.toFixed(3)}, ${m.plan.secs.toFixed(1)} s from ${m.plan.at.toFixed(1)} s`);
+}
+
+function runMix(m) {
+  const { plan } = m;
+  state.crossfaded = true;
+  handOver(plan.secs, {
+    bassSwap: true,
+    onIn: (left) => {
+      if (state.songId !== m.nextId) { fx.mainIn(left); return; }
+      // Line the next song's beats up with the ending song's, at the matched speed.
+      const outPos = fx.tail?.el.currentTime ?? plan.at;
+      audio.preservesPitch = true;
+      audio.playbackRate = plan.rate;
+      audio.currentTime = alignedPosition(plan.outGrid, plan.inGrid, outPos, plan.inAt);
+      fx.mainIn(left, { bassSwap: true });
+      audio.addEventListener('seeked', () => setTimeout(() => lockBeats(plan, m.nextId), 250), { once: true });
+      if (plan.rate !== 1) glideRate(plan.rate, left + 2, m.nextId);
+    },
+  });
+}
+
+/** After the jump, nudges the incoming song's speed until its beats sit on the outgoing song's. */
+function lockBeats(plan, id) {
+  const tail = fx.tail?.el;
+  if (!tail || state.songId !== id || !plan.outGrid.period || !plan.inGrid.period) return;
+  const phase = (t, g) => { const x = ((t - g.offset) / g.period) % 1; return x < 0 ? x + 1 : x; };
+  let d = phase(tail.currentTime, plan.outGrid) - phase(audio.currentTime, plan.inGrid); // beats the incoming song is behind
+  d = ((d + 1.5) % 1) - 0.5;
+  const secs = d * plan.outGrid.period;
+  if (Math.abs(secs) < 0.006) return;
+  const push = 0.03 * Math.sign(secs);
+  audio.playbackRate = plan.rate * (1 + push);
+  setTimeout(() => { if (state.songId === id) audio.playbackRate = plan.rate; }, (Math.abs(secs) / 0.03) * 1000);
+}
+
+/** After the mix, the song's speed eases back to normal over a few bars. */
+function glideRate(from, wait, id) {
+  setTimeout(() => {
+    const started = performance.now(), secs = 8;
+    const timer = setInterval(() => {
+      if (state.songId !== id) { clearInterval(timer); audio.playbackRate = 1; return; }
+      const k = Math.min(1, (performance.now() - started) / 1000 / secs);
+      audio.playbackRate = from + (1 - from) * k;
+      if (k >= 1) clearInterval(timer);
+    }, 100);
+  }, wait * 1000);
+}
+
+setInterval(() => {
+  if (!settings.get('automix') || state.external || state.crossfaded || !fx.ready || audio.paused || !Number.isFinite(audio.duration) || !state.songId) return;
+  const left = audio.duration - audio.currentTime;
+  if (left > 75) return;
+  if (state.mix?.forId !== state.songId) { prepareMix(state.songId); return; }
+  const m = state.mix;
+  if (!m.ready) {
+    // Not measured (yet): a plain 6 s blend near the end.
+    if (left < 6.6 && left > 0.8 && hasNextSong() && !m.waiting) { m.waiting = true; handOver(Math.min(6, left - 0.3), { bassSwap: true }); }
+    return;
+  }
+  if (nextQueuedId() !== m.nextId) { state.mix = null; return; } // the queue changed
+  const until = (m.plan.at - audio.currentTime) / (audio.playbackRate || 1);
+  if (until < 0.6 && !m.armed) {
+    m.armed = true;
+    setTimeout(() => { if (state.mix === m && !state.crossfaded && state.songId === m.forId) runMix(m); }, Math.max(0, until * 1000 - 120));
+  }
+}, 100);
 
 // ---------------------------------------------------------------------------
 // Sleep timer, stats, quiz, tap-to-sync, translations, lyric clips
@@ -1644,6 +1777,11 @@ queue.smart = settings.get('smartShuffle') ? shuffleInfo : null;
 // Phone remote: what's playing goes to the app's little web server.
 
 var refreshRemoteRow; // set by the settings row (built earlier); no initial value here
+var updateEqRow;      // same
+
+function openEqualizer() {
+  showEqualizer({ settings, toast, applies: () => !state.external });
+}
 let remoteArt = { url: null, thumb: undefined };
 setInterval(() => {
   if (!settings.get('remote') || !native?.appPrefs) return;
