@@ -1,0 +1,34 @@
+{
+  "functions": {
+    "api/cover-gif.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "includeFiles": "node_modules/ffmpeg-static/ffmpeg"
+    },
+    "api/app-update.js": {
+      "includeFiles": "{index.html,styles.css,apple-ui.css,mini.html,package.json,src/**,examples/**}"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/update/lyricviewer/package.json",
+      "destination": "/api/app-update?file=package.json"
+    },
+    {
+      "source": "/update/lyricviewer/:path*",
+      "destination": "/:path*"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/update/lyricviewer",
+      "destination": "/update/lyricviewer/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/update/lyricviewer/",
+      "destination": "/update/lyricviewer/index.html",
+      "permanent": false
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "name": "lyric-player-desktop",
+  "productName": "Lyric Player",
+  "version": "2.2.1",
+  "description": "Apple Music-style TTML lyric player",
+  "author": {
+    "name": "Ruytha"
+  },
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "local.lyricplayer.desktop",
+    "productName": "Lyric Player",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "discord-rpc.cjs",
+      "music-folders.cjs",
+      "lastfm.cjs",
+      "system-media.cjs",
+      "system-media.ps1",
+      "web-update.cjs",
+      "build/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "../index.html",
+        "to": "web/index.html"
+      },
+      {
+        "from": "../styles.css",
+        "to": "web/styles.css"
+      },
+      {
+        "from": "../apple-ui.css",
+        "to": "web/apple-ui.css"
+      },
+      {
+        "from": "../mini.html",
+        "to": "web/mini.html"
+      },
+      {
+        "from": "../src",
+        "to": "web/src"
+      },
+      {
+        "from": "../examples",
+        "to": "web/examples"
+      },
+      {
+        "from": "../package.json",
+        "to": "web/package.json"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "legalTrademarks": "Ruytha"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "Lyric Player",
+      "artifactName": "Lyric-Player-Setup-${version}.${ext}",
+      "uninstallDisplayName": "Lyric Player"
+    },
+    "portable": {
+      "artifactName": "Lyric-Player-${version}-portable.${ext}"
+    },
+    "copyright": "Copyright © 2026 Ruytha"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "music-metadata": "^11.16.1"
+  }
+}

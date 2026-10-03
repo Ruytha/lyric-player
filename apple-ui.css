@@ -1,0 +1,61 @@
+/* Window chrome for the desktop app: red / yellow / green window buttons like
+   macOS, and the strip along the top that drags the window. Plus small
+   additions to styles.css (the Lyricify background's dimming). */
+
+/* The old full-width drag strip is replaced by .fp-top (doesn't block clicks). */
+.desktop body::before { display: none; }
+
+.win-controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+.wc {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+  cursor: default;
+}
+.wc.close { background: #ff5f57; }
+.wc.min { background: #febc2e; }
+.wc.zoom { background: #28c840; }
+.wc svg { width: 12px; height: 12px; opacity: 0; fill: none; stroke: rgba(0, 0, 0, 0.62); stroke-width: 1.15; stroke-linecap: round; }
+.wc svg .fill { fill: rgba(0, 0, 0, 0.62); stroke: none; }
+.win-controls:hover .wc svg { opacity: 1; }
+.wc:active { filter: brightness(0.82); }
+.wc:focus-visible { outline: none; }
+html.win-blurred .win-controls:not(:hover) .wc { background: rgba(255, 255, 255, 0.22); box-shadow: none; }
+/* Full screen hides them, like macOS. */
+:fullscreen .win-controls, html.idle .win-controls { display: none; }
+
+/* Drag the window by its top edge. */
+.fp-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  z-index: 7;
+  -webkit-app-region: drag;
+  pointer-events: none;
+}
+
+/* The Lyricify background darkens itself (a 40% scrim), so Dim adds to that
+   only above its 25% default. */
+.bg.lyricify-mode::after { opacity: max(0, calc(var(--dim, 0.25) - 0.25)); }
+
+/* Dropping files anywhere */
+body.dragover .drop-overlay { opacity: 1; }
+body.dragover.over-art .drop-overlay { opacity: 0; }
+
+/* The library slides in from the left: keep it clear of the window buttons. */
+.desktop .lib-sheet { top: 48px; }

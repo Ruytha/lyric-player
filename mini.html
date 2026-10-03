@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lyric Player mini</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+  <style>
+    @font-face { font-family: "SF Lyric"; font-weight: 400; src: local("SF Pro Display Regular"), local("SFProDisplay-Regular"); }
+    @font-face { font-family: "SF Lyric"; font-weight: 600; src: local("SF Pro Display Semibold"), local("SFProDisplay-Semibold"); }
+    @font-face { font-family: "SF Lyric"; font-weight: 700; src: local("SF Pro Display Bold"), local("SFProDisplay-Bold"); }
+    @font-face { font-family: "SF Lyric"; font-weight: 800; src: local("SF Pro Display Heavy"), local("SFProDisplay-Heavy"); }
+    :root { color-scheme: dark; --font: "SF Lyric", "Inter", system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; font-family: var(--font); color: #fff; -webkit-font-smoothing: antialiased; user-select: none; }
+    .mini {
+      position: absolute; inset: 6px;
+      display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center;
+      padding: 12px 16px 12px 12px;
+      border-radius: 20px;
+      background: rgba(28, 30, 38, 0.72);
+      backdrop-filter: blur(30px) saturate(1.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+      -webkit-app-region: drag;
+      overflow: hidden;
+    }
+    .bg { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(40px) saturate(1.5); opacity: 0.45; z-index: -1; transition: background-image .6s; }
+    .art { width: 76px; height: 76px; border-radius: 10px; background: rgba(255, 255, 255, 0.08) center/cover; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3); }
+    .text { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .line { font-weight: 800; font-size: 21px; line-height: 1.2; letter-spacing: -0.01em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 1.2em; }
+    .line .w { color: rgba(255, 255, 255, 0.38); background-image: linear-gradient(90deg, #fff var(--p, 0%), transparent var(--p, 0%)); -webkit-background-clip: text; background-clip: text; }
+    .line .w.done { color: #fff; }
+    .next { font-weight: 700; font-size: 14px; color: rgba(255, 255, 255, 0.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta { font-size: 12px; color: rgba(255, 255, 255, 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .controls { position: absolute; right: 10px; top: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity .2s; -webkit-app-region: no-drag; }
+    .mini:hover .controls { opacity: 1; }
+    .controls button { width: 28px; height: 28px; border: 0; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.14); color: #fff; cursor: pointer; padding: 0; }
+    .controls button:hover { background: rgba(255, 255, 255, 0.26); }
+    .controls svg { width: 14px; height: 14px; fill: currentColor; }
+    .progress { position: absolute; left: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.55); width: 0; }
+  </style>
+</head>
+<body>
+  <div class="mini">
+    <div class="bg" id="bg"></div>
+    <div class="art" id="art"></div>
+    <div class="text">
+      <div class="line" id="line"></div>
+      <div class="next" id="next"></div>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="controls">
+      <button data-cmd="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M19 6v12l-8.5-6zM11 6v12L2.5 12z"/></svg></button>
+      <button data-cmd="toggle" aria-label="Play or pause" id="playBtn"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></svg></button>
+      <button data-cmd="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M5 6v12l8.5-6zM13 6v12l8.5-6z"/></svg></button>
+      <button data-cmd="focus" aria-label="Open the player"><svg viewBox="0 0 24 24"><path d="M5 5h6v2H7v10h10v-4h2v6H5zM13 5h6v6h-2V8.4l-6.3 6.3-1.4-1.4L15.6 7H13z"/></svg></button>
+      <button data-cmd="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4L12 13.4 6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg></button>
+    </div>
+    <div class="progress" id="progress"></div>
+  </div>
+  <script type="module" src="src/mini.js"></script>
+</body>
+</html>

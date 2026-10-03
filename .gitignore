@@ -1,0 +1,12 @@
+# Secrets and local Vercel link
+.env*
+.vercel
+
+# Dependencies and builds
+node_modules/
+desktop/node_modules/
+desktop/dist*/
+*.zip
+
+# Local tooling
+.claude/

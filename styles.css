@@ -1,0 +1,1632 @@
+/* Apple Music–style full-screen lyrics player. Always dark (it sits on a
+   darkened artwork backdrop), so there is a single color scheme. */
+
+/* Apple's SF Pro Display, taken from the local install when present (it's
+   built in on Apple devices; on Windows install it from
+   https://developer.apple.com/fonts/). Each weight is its own face, so a
+   missing weight falls back to Inter instead of being faux-bolded. */
+@font-face { font-family: "SF Lyric"; font-weight: 400; font-display: swap; src: local("SF Pro Display Regular"), local("SFProDisplay-Regular"); }
+@font-face { font-family: "SF Lyric"; font-weight: 500; font-display: swap; src: local("SF Pro Display Medium"), local("SFProDisplay-Medium"); }
+@font-face { font-family: "SF Lyric"; font-weight: 600; font-display: swap; src: local("SF Pro Display Semibold"), local("SFProDisplay-Semibold"); }
+@font-face { font-family: "SF Lyric"; font-weight: 700; font-display: swap; src: local("SF Pro Display Bold"), local("SFProDisplay-Bold"); }
+@font-face { font-family: "SF Lyric"; font-weight: 800; font-display: swap; src: local("SF Pro Display Heavy"), local("SFProDisplay-Heavy"); }
+@font-face { font-family: "SF Lyric"; font-weight: 900; font-display: swap; src: local("SF Pro Display Black"), local("SFProDisplay-Black"); }
+
+:root {
+  color-scheme: dark;
+  --font: "SF Lyric", -apple-system, BlinkMacSystemFont, "Inter", system-ui, "Segoe UI", sans-serif;
+  --font-lyric: var(--font);
+  --text: #fff;
+  --dim: rgba(255, 255, 255, 0.32);
+  --muted: rgba(255, 255, 255, 0.6);
+  --faint: rgba(255, 255, 255, 0.5);
+  --glass: rgba(255, 255, 255, 0.12);
+  --glass-hover: rgba(255, 255, 255, 0.2);
+  --base: #222b38;
+
+  /* Reference layout is 1920×1080: art 615px, lyrics 52px. */
+  --art: clamp(200px, min(32vw, calc((100vh - 64px) / 1.82)), 615px);
+  --u: calc(var(--art) / 615);               /* 1 "design px" at reference size */
+  --lyric-size: clamp(26px, 2.71vw, 52px);
+  --spring: cubic-bezier(.3, 1.4, .5, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--base);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 3px;
+}
+[hidden] { display: none !important; }
+
+/* ------------------------------------------------------------------------ */
+/* Background */
+
+.bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--base);
+}
+.bg canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform;  /* the beat pulse is a scale, composited */
+}
+/* Dim layer: lifts a little while the music is loud (--lift set by background.js). */
+.bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: max(0, calc(var(--dim, 0.35) - 0.13 * var(--lift, 0)));
+}
+.bg canvas[hidden] { display: none; }
+
+/* ------------------------------------------------------------------------ */
+/* Layout */
+
+.app {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40% 60%;
+  height: 100vh;
+  height: 100dvh;
+  user-select: none;
+  -webkit-user-select: none;
+  animation: app-in .6s ease both;
+}
+@keyframes app-in { from { opacity: 0; } }
+
+.app.no-lyrics { grid-template-columns: 1fr; }
+.app.no-lyrics .lyrics { display: none; }
+
+/* Desktop app: the top strip drags the window; window buttons sit top-right. */
+.desktop body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 36px;
+  z-index: 50;
+  -webkit-app-region: drag;
+}
+.desktop .grab { display: none; }
+.desktop .menu, .desktop button { -webkit-app-region: no-drag; }
+
+.grab {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  width: 40px;
+  height: 6px;
+  margin-left: -20px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 2;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Player */
+
+.player {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  padding: 32px 0;
+}
+.player-inner { width: var(--art); }
+
+.art {
+  position: relative;
+  width: var(--art);
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5a6a82 0%, #3a4659 50%, #262d3a 100%);
+  box-shadow: 0 calc(28 * var(--u)) calc(70 * var(--u)) rgba(0, 0, 0, 0.32), 0 6px 18px rgba(0, 0, 0, 0.16);
+  transform: scale(0.9);
+  transform-origin: center;
+}
+.art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.art-drop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px dashed rgba(255, 255, 255, 0.7);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+body.dragover.over-art .art-drop { opacity: 1; }
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: calc(14 * var(--u));
+  margin-top: calc(38 * var(--u));
+}
+.meta-text { flex: 1; min-width: 0; }
+.marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+.marquee.scrolling { text-overflow: clip; }
+.marquee.scrolling > span {
+  display: inline-block;
+  animation: marquee var(--marquee-dur, 6s) ease-in-out 0.4s infinite alternate;
+}
+@keyframes marquee { to { transform: translateX(var(--shift, 0)); } }
+.title {
+  font-size: max(15px, calc(26 * var(--u)));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.artist {
+  font-size: max(15px, calc(26 * var(--u)));
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: -0.01em;
+}
+
+.round {
+  flex: none;
+  width: max(30px, calc(42 * var(--u)));
+  height: max(30px, calc(42 * var(--u)));
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  transition: background .2s, transform .35s var(--spring);
+}
+.round:hover { background: rgba(255, 255, 255, 0.22); }
+.round:active { transform: scale(0.88); }
+.round svg { width: 50%; height: 50%; fill: currentColor; }
+#favBtn svg { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linejoin: round; }
+#favBtn[aria-pressed="true"] svg { fill: currentColor; }
+
+.menu-wrap { position: relative; }
+.menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  min-width: 250px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(40, 46, 58, 0.78);
+  -webkit-backdrop-filter: blur(30px) saturate(1.6);
+  backdrop-filter: blur(30px) saturate(1.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  z-index: 20;
+  font-size: 15px;
+  animation: menu-in .3s var(--spring);
+  transform-origin: bottom right;
+}
+@keyframes menu-in { from { opacity: 0; transform: scale(.9); } }
+.menu > button, .menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+}
+.menu > button:hover { background: rgba(255, 255, 255, 0.1); }
+.menu .check { opacity: 0; font-weight: 600; }
+.menu [aria-checked="true"] .check { opacity: 1; }
+.menu-sep { height: 1px; margin: 4px 8px; background: rgba(255, 255, 255, 0.12); }
+.stepper { display: inline-flex; align-items: center; gap: 6px; }
+.stepper button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+.stepper button:hover { background: rgba(255, 255, 255, 0.22); }
+.stepper output {
+  min-width: 64px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* Sliders (progress + volume): thin bars that thicken while touched. */
+.progress, .vslider {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+}
+.progress { margin-top: calc(30 * var(--u)); }
+.progress .track, .vslider .track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+  transition: height .35s var(--spring), background .2s;
+}
+.progress:hover .track, .vslider:hover .track { background: rgba(255, 255, 255, 0.25); }
+.progress.dragging .track, .vslider.dragging .track { height: 12px; }
+.progress .fill, .vslider .fill {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.6);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: background .2s;
+}
+.progress.dragging .fill, .vslider.dragging .fill { background: #fff; }
+
+.times {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-top: 4px;
+  font-size: max(11px, calc(13 * var(--u)));
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.times #remaining { grid-column: 3; text-align: right; }
+.badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Transport: three large controls, centred. */
+.transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(70 * var(--u));
+  margin-top: calc(18 * var(--u));
+}
+.tbtn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  transition: transform .35s var(--spring), opacity .2s;
+}
+.tbtn::before {
+  content: '';
+  position: absolute;
+  inset: -22%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  opacity: 0;
+  transform: scale(.6);
+  transition: opacity .25s, transform .35s var(--spring);
+}
+.tbtn:active::before { opacity: 1; transform: scale(1); }
+.tbtn:active { transform: scale(0.86); }
+.tbtn svg { position: relative; width: 100%; height: 100%; fill: currentColor; }
+.tbtn .fillstroke { stroke: currentColor; stroke-width: 2.6; stroke-linejoin: round; }
+.tbtn.mid { width: max(36px, calc(54 * var(--u))); height: max(28px, calc(40 * var(--u))); }
+.tbtn.big { width: max(42px, calc(62 * var(--u))); height: max(42px, calc(62 * var(--u))); }
+.tbtn .i-pause { display: none; }
+.tbtn.playing .i-play { display: none; }
+.tbtn.playing .i-pause { display: block; }
+
+/* Volume */
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: calc(22 * var(--u));
+}
+.vslider { flex: 1; }
+.vol-icon { flex: none; width: max(14px, calc(18 * var(--u))); height: max(14px, calc(18 * var(--u))); fill: rgba(255, 255, 255, 0.55); }
+.vol-icon .wave { fill: none; stroke: rgba(255, 255, 255, 0.55); stroke-width: 1.8; stroke-linecap: round; }
+
+/* Lyrics · AirPlay · Playing Next */
+.bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  margin-top: calc(26 * var(--u));
+}
+.ibtn {
+  display: grid;
+  place-items: center;
+  width: max(34px, calc(44 * var(--u)));
+  height: max(34px, calc(44 * var(--u)));
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  transition: background .25s, color .25s, transform .35s var(--spring);
+}
+.ibtn:hover { color: #fff; }
+.ibtn:active { transform: scale(0.88); }
+.ibtn svg { width: 58%; height: 58%; fill: currentColor; }
+.ibtn svg .line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ibtn svg .cut { fill: none; stroke: var(--base); stroke-width: 1.6; stroke-linecap: round; }
+/* Active state: a filled white rounded square with the glyph knocked out. */
+.ibtn[aria-pressed="true"] { background: rgba(255, 255, 255, 0.85); color: #3a3f4a; }
+.ibtn[aria-pressed="true"] svg .cut { stroke: rgba(255, 255, 255, 0.85); }
+#lyricsBtn svg .cut { stroke: rgba(30, 36, 46, 0.9); }
+#lyricsBtn[aria-pressed="true"] svg .cut { stroke: rgba(255, 255, 255, 0.85); }
+
+.menu.queue {
+  min-width: 280px;
+  padding: 14px;
+  left: 50%;
+  right: auto;
+  transform-origin: bottom center;
+  translate: -50% 0;
+}
+.queue-head { font-weight: 700; font-size: 17px; margin-bottom: 12px; }
+.queue-toggles { display: flex; gap: 8px; margin-bottom: 12px; }
+.qtoggle {
+  flex: 1;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.75);
+  transition: background .2s, color .2s;
+}
+.qtoggle svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.qtoggle[aria-pressed="true"] { background: rgba(255, 255, 255, 0.85); color: #2a2f3a; }
+.queue-empty { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+.menu.queue { width: min(340px, calc(100vw - 32px)); }
+.lib-head { margin-top: 4px; }
+.library { max-height: min(340px, 45vh); overflow-y: auto; margin: 0 -6px; }
+.lib-row { display: flex; align-items: center; border-radius: 10px; }
+.lib-row:hover { background: rgba(255, 255, 255, 0.08); }
+.lib-row.current .lib-title { color: #fff; }
+.lib-row.current .lib-title::after { content: ' ♪'; color: rgba(255, 255, 255, 0.6); }
+.lib-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.lib-art {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5a6a82, #262d3a);
+}
+.lib-art img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.lib-text { min-width: 0; display: flex; flex-direction: column; }
+.lib-title, .lib-sub { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lib-title { font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.85); }
+.lib-sub { font-size: 12px; color: rgba(255, 255, 255, 0.5); }
+.lib-remove {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity .15s, background .15s;
+}
+.lib-row:hover .lib-remove, .lib-remove:focus-visible { opacity: 1; }
+.lib-remove:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+@media (hover: none) { .lib-remove { opacity: 1; } }
+
+/* ------------------------------------------------------------------------ */
+/* Lyrics */
+
+.lyrics {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 78%, transparent 100%);
+  scrollbar-width: none;
+  touch-action: none;
+}
+.lyrics::-webkit-scrollbar { display: none; }
+.lyrics.dragging { cursor: grabbing; }
+
+/* AMLL lyric player (timed lyrics). Same column as our own renderer. */
+.amll-host.amll-lyric-player {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  width: min(800px, calc(100% - 100px));
+  height: 100%;
+  font-family: var(--font-lyric);
+  font-weight: var(--lyric-weight, 700);
+  letter-spacing: var(--lyric-spacing, -0.02em);
+  --amll-lp-font-size: calc(var(--lyric-size) * var(--lyric-scale, 1));
+}
+
+/* Bloom: soft light around the lit part of the line being sung. */
+/* (On AMLL's line element itself: it clips its contents, so a glow on its
+   children would be cut off in a rectangle.) */
+.lyrics.bloom .amll-host .FmKaba_lyricLine.FmKaba_gradientMask:not(.FmKaba_lyricBgLine),
+.lyrics.bloom .lyric-item.active .line-main {
+  filter: drop-shadow(0 0 var(--bloom-r) rgba(255, 255, 255, var(--bloom-a)))
+          drop-shadow(0 0 calc(var(--bloom-r) * 2.5) rgba(255, 255, 255, calc(var(--bloom-a) * 0.45)));
+}
+.amll-host[hidden] { display: none; }
+.lyrics.amll .lyrics-scroller { display: none; }
+
+.lyrics-scroller {
+  position: absolute;
+  top: 0;
+  left: 50px;
+  width: min(800px, calc(100% - 100px));
+  font-size: calc(var(--lyric-size) * var(--lyric-scale, 1));
+}
+.lyrics-empty {
+  position: absolute;
+  top: 35%;
+  left: 50px;
+  right: 50px;
+  font-size: calc(var(--lyric-size) * 0.6);
+  font-weight: 700;
+  color: var(--dim);
+}
+
+.lyric-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+.lyric-item.moving { will-change: transform; }
+.lyric-item.culled { visibility: hidden; }
+.lyrics-scroller.enter { animation: lyrics-in .6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes lyrics-in { from { opacity: 0; transform: translateY(0.6em); } }
+
+.line-inner {
+  position: relative;
+  font-family: var(--font-lyric);
+  font-weight: var(--lyric-weight, 700);
+  line-height: 1.2;
+  letter-spacing: var(--lyric-spacing, -0.02em);
+  transform-origin: left center;   /* scale is driven by a spring in renderer.js */
+  filter: blur(var(--blur, 0px));
+  transition: filter .4s ease, opacity .4s ease;
+  cursor: pointer;
+}
+.lyric-item.duet .line-inner { text-align: right; transform-origin: right center; }
+.line-inner.scaling { will-change: transform; }
+.lyric-item.active .line-inner { filter: blur(0px); opacity: 0.85; }
+
+/* Duets: each side keeps clear of the other's column. */
+.lyrics.has-duet .lyric-item:not(.duet) .line-inner { padding-right: 15%; }
+.lyrics.has-duet .lyric-item.duet .line-inner { padding-left: 15%; }
+
+/* Hover / manual scroll: unblur everything; highlight the hovered line. */
+.lyrics.manual .line-inner { filter: blur(0px); }
+@media (hover: hover) {
+  .lyrics:hover .line-inner { filter: blur(0px); }
+  .line-inner::before {
+    content: '';
+    position: absolute;
+    inset: -0.2em -0.32em;
+    border-radius: 0.25em;
+    background: rgba(255, 255, 255, 0.07);
+    opacity: 0;
+    transition: opacity .2s;
+    pointer-events: none;
+  }
+  .lyrics:not(.dragging) .line-inner:hover::before { opacity: 1; }
+}
+
+/* Dimming is an alpha mask over white text. --bright is the alpha of what has
+   been sung, --dark of what hasn't; both fade when a line (de)activates. */
+@property --bright { syntax: '<number>'; inherits: true; initial-value: 0.25; }
+@property --dark { syntax: '<number>'; inherits: true; initial-value: 0.25; }
+
+.line-main, .line-bg {
+  --bright: 0.25;
+  --dark: 0.25;
+  color: #fff;
+  transition: --bright .45s ease-out, --dark .45s ease-out;
+}
+.lyric-item.main-on .line-main,
+.lyric-item.bg-on .line-bg {
+  --bright: 1;
+  --dark: 0.4;
+  transition-duration: .3s;
+}
+
+/* One sweep front crosses the whole line; renderer.paintSweep positions each
+   word's mask so the soft edge sits on that front. */
+.word {
+  --fade: 0.6em;
+  display: inline-block;
+  position: relative;
+  white-space: nowrap;
+  padding: 0.25em 0;
+  margin: -0.25em 0;
+  -webkit-mask-image: linear-gradient(90deg, rgb(0 0 0 / var(--bright)) calc(50% - var(--fade) / 2), rgb(0 0 0 / var(--dark)) calc(50% + var(--fade) / 2));
+  mask-image: linear-gradient(90deg, rgb(0 0 0 / var(--bright)) calc(50% - var(--fade) / 2), rgb(0 0 0 / var(--dark)) calc(50% + var(--fade) / 2));
+  -webkit-mask-size: calc(200% + var(--fade)) 100%;
+  mask-size: calc(200% + var(--fade)) 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 100% 0;
+  mask-position: 100% 0;
+}
+/* Room for the glow and the letters' spread inside the mask. */
+.word.emphasis { padding: 0.35em 0.4em; margin: -0.35em -0.4em; }
+.letter {
+  display: inline-block;
+  transform-origin: 50% 50%;
+}
+/* Own GPU layers so the per-frame swell moves on sub-pixels instead of snapping. */
+.word.emphasis, .word.emphasis .letter { backface-visibility: hidden; }
+
+/* Line-timed lyrics: no sweep, the whole line lights up. */
+.mode-line .word, .mode-none .word { -webkit-mask-position: 0 0; mask-position: 0 0; }
+
+/* Background vocals: tucked away until their line is sung, then they unfold
+   beneath it and push the following lines down. */
+.line-bg {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  font-size: 0.7em;
+  font-weight: 700;
+  margin-top: 0.2em;
+  opacity: 0;
+  transform: translateY(-40%) scale(0.8);
+  transform-origin: left top;
+  visibility: hidden;
+  transition: --bright .45s ease-out, --dark .45s ease-out, opacity .3s ease, transform .5s cubic-bezier(.2, .8, .2, 1), visibility 0s .3s;
+}
+.lyric-item.duet .line-bg { transform-origin: right top; }
+.lyric-item.bg-open .line-bg,
+.lyrics-scroller.measure-open .line-bg {
+  position: relative;
+  top: auto;
+  opacity: 0.5;
+  transform: none;
+  visibility: visible;
+  transition: --bright .3s ease-out, --dark .3s ease-out, opacity .3s ease, transform .5s cubic-bezier(.2, .8, .2, 1), visibility 0s;
+}
+.lyrics-scroller.measure-closed .line-bg { position: absolute !important; top: 100% !important; }
+/* Untimed lyrics: always show them. */
+.lyrics.static .line-bg { position: relative; top: auto; opacity: 0.5; transform: none; visibility: visible; }
+
+.line-trans {
+  display: none;
+  margin-top: 0.3em;
+  font-size: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0;
+  color: rgba(255, 255, 255, 0.3);
+  transition: color .4s;
+}
+.lyrics.show-trans .line-trans { display: block; }
+.lyric-item.active .line-trans { color: rgba(255, 255, 255, 0.6); }
+
+/* Static (untimed) lyrics */
+.lyrics.static .line-inner { filter: none; cursor: default; }
+.lyrics.static .line-main, .lyrics.static .line-bg { --bright: 0.85; --dark: 0.85; }
+
+/* Interlude dots */
+.lyric-item.interlude { pointer-events: none; padding: 0.4em 0; }
+.interlude-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  height: 0.6em;
+  padding: 0 0.05em;
+  opacity: 0;
+  transform-origin: center;
+}
+.lyric-item.interlude.duet { text-align: right; }
+.dot {
+  width: 0.3em;
+  height: 0.3em;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Landing */
+
+.landing {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 10;
+  transition: opacity .5s ease, transform .5s ease;
+}
+.landing.gone { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.drop-card {
+  width: min(540px, 100%);
+  padding: 44px 32px 32px;
+  border-radius: 28px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+  text-align: center;
+  transition: border-color .2s, background .2s, transform .3s var(--spring);
+}
+body.dragover .drop-card {
+  border-color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.02);
+}
+.drop-icon { width: 44px; height: 44px; fill: rgba(255, 255, 255, 0.85); }
+.drop-card h1 {
+  margin: 14px 0 6px;
+  font-size: clamp(22px, 4vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.hint { margin: 0 0 24px; color: var(--muted); font-size: 15px; }
+.drop-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.pill {
+  padding: 11px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1b2230;
+  font-weight: 600;
+  font-size: 15px;
+  transition: transform .2s var(--spring), background .2s;
+}
+.pill:hover { background: #fff; }
+.pill:active { transform: scale(0.95); }
+.drop-status {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+.chip {
+  max-width: 100%;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--faint);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip.ok { color: #fff; background: rgba(255, 255, 255, 0.16); }
+.link {
+  margin-top: 18px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.link:hover { color: #fff; }
+.link:disabled { opacity: .5; cursor: progress; }
+
+/* Drop overlay while the player is showing */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+  z-index: 30;
+}
+body.dragover .landing[hidden] ~ .drop-overlay { opacity: 1; }
+body.dragover.over-art .drop-overlay { opacity: 0; }
+.drop-overlay-card {
+  padding: 20px 28px;
+  border-radius: 18px;
+  border: 2px dashed rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Toasts */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 40;
+  pointer-events: none;
+  width: calc(100% - 32px);
+}
+.toast {
+  max-width: 560px;
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(30, 34, 42, 0.82);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px) scale(.96);
+  transition: opacity .25s, transform .3s var(--spring);
+}
+.toast.in { opacity: 1; transform: none; }
+.toast.error { background: rgba(120, 28, 36, 0.88); }
+
+/* ------------------------------------------------------------------------ */
+/* Narrow screens: artwork on top, lyrics below */
+
+@media (max-width: 900px) {
+  :root {
+    --art: clamp(180px, min(78vw, 40vh), 420px);
+    --lyric-size: clamp(24px, 6.2vw, 36px);
+  }
+  html, body { overflow-y: auto; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 70vh;
+    height: auto;
+    min-height: 100vh;
+  }
+  .player { padding: 40px 16px 8px; }
+  .title, .artist { font-size: 18px; }
+  .lyrics-scroller { left: 20px; width: calc(100% - 40px); }
+  .lyrics-empty { left: 20px; right: 20px; }
+  .menu { right: -8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee.scrolling > span { animation: none; }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Settings sheet */
+
+.sheet {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  width: min(380px, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 30px;
+  background: rgba(28, 32, 42, 0.72);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateX(calc(100% + 40px));
+  opacity: 0;
+  transition: transform .5s cubic-bezier(.2, .9, .25, 1.05), opacity .3s;
+  font-size: 15px;
+}
+.sheet.open { transform: none; opacity: 1; }
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 18px 10px 24px;
+}
+.sheet-head h2 { flex: 1; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
+.sheet-btn {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background .2s, transform .3s var(--spring);
+}
+.sheet-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.sheet-btn:active { transform: scale(.92); }
+.sheet-close { width: 34px; padding: 0; display: grid; place-items: center; }
+.sheet-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.sheet-body { flex: 1; overflow-y: auto; padding: 4px 16px 24px; overscroll-behavior: contain; scrollbar-width: thin; }
+.sheet-section {
+  margin: 18px 8px 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.sheet-group {
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+.set-row { padding: 12px 16px; }
+.set-row + .set-row { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.set-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
+.set-label { font-weight: 500; }
+.set-value { font-variant-numeric: tabular-nums; color: rgba(255, 255, 255, 0.55); font-size: 14px; }
+.set-hint { margin-top: 4px; font-size: 12.5px; color: rgba(255, 255, 255, 0.45); }
+
+/* Slider: thin track filled up to the value, pill knob that swells while held. */
+.set-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin: 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  --p: 50%;
+}
+.set-slider:focus-visible { outline: none; }
+.set-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #fff 0 var(--p), rgba(255, 255, 255, 0.18) var(--p) 100%);
+}
+.set-slider::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.18); }
+.set-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: #fff; }
+.set-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px;
+  height: 20px;
+  margin-top: -7px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  transition: transform .35s var(--spring), background .2s, box-shadow .2s;
+}
+.set-slider::-moz-range-thumb {
+  width: 30px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+/* Held: the knob turns to clear glass, as on iOS 26. */
+.set-slider:active::-webkit-slider-thumb {
+  transform: scale(1.45, 1.6);
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.set-slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.45); }
+
+/* Switch */
+.set-switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(120, 120, 128, 0.36);
+  cursor: pointer;
+  transition: background .25s;
+}
+.set-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), 0 1px 1px rgba(0, 0, 0, 0.1);
+  transition: transform .4s var(--spring), width .2s;
+}
+.set-switch:checked { background: #34c759; }
+.set-switch:checked::after { transform: translateX(22px); }
+.set-switch:active::after { width: 32px; }
+.set-switch:checked:active::after { transform: translateX(16px); }
+.set-switch:focus-visible { outline: 2px solid rgba(255, 255, 255, 0.6); outline-offset: 2px; }
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  margin-top: 8px;
+  padding: 3px;
+  border-radius: 12px;
+  background: rgba(118, 118, 128, 0.24);
+}
+.seg {
+  flex: 1;
+  height: 32px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.75);
+  transition: background .25s, color .25s;
+}
+.seg[aria-checked="true"] { background: rgba(255, 255, 255, 0.22); color: #fff; font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15); }
+
+#settingsBtn[aria-expanded="true"] { color: #fff; }
+
+/* ------------------------------------------------------------------------ */
+/* Liquid Glass
+   A tinted, saturated blur with bright rims: a highlight along the top-left
+   edge, a softer one bottom-right and a faint inner glow. In Chromium,
+   liquid-glass.js adds a per-element refraction filter (--lg-filter) so the
+   backdrop bends near the edges like thick glass. */
+
+html.glass .round,
+html.glass .menu,
+html.glass .toast,
+html.glass .sheet,
+html.glass .qtoggle,
+html.glass .stepper button,
+html.glass .sheet-btn,
+html.glass .ibtn:hover,
+html.glass .ibtn[aria-pressed="true"] {
+  --lg-tint: rgba(255, 255, 255, 0.08);
+  --lg-blur: 6px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 55%, rgba(255, 255, 255, 0.07)),
+    var(--lg-tint);
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(1.9) brightness(1.06);
+  backdrop-filter: blur(var(--lg-blur)) saturate(1.9) brightness(1.06);
+  box-shadow:
+    inset 1px 1px 0.5px -0.5px rgba(255, 255, 255, 0.85),
+    inset -1px -1px 0.5px -0.5px rgba(255, 255, 255, 0.45),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.22),
+    inset 0 0 16px rgba(255, 255, 255, 0.06),
+    0 8px 28px rgba(0, 0, 0, 0.22);
+}
+/* Big panels keep their text readable: more blur and a darker tint. */
+html.glass .menu,
+html.glass .sheet,
+html.glass .toast {
+  --lg-tint: rgba(22, 26, 36, 0.42);
+  --lg-blur: 22px;
+}
+html.glass .sheet {
+  box-shadow:
+    inset 1.5px 1.5px 1px -1px rgba(255, 255, 255, 0.8),
+    inset -1px -1px 1px -0.5px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    inset 0 0 40px rgba(255, 255, 255, 0.05),
+    0 30px 80px rgba(0, 0, 0, 0.4);
+}
+html.glass .round:hover,
+html.glass .sheet-btn:hover,
+html.glass .stepper button:hover { --lg-tint: rgba(255, 255, 255, 0.16); }
+html.glass .ibtn[aria-pressed="true"] { --lg-tint: rgba(255, 255, 255, 0.3); color: #fff; }
+html.glass .ibtn[aria-pressed="true"] svg .cut,
+html.glass #lyricsBtn[aria-pressed="true"] svg .cut { stroke: rgba(20, 24, 34, 0.8); }
+html.glass .qtoggle[aria-pressed="true"] { --lg-tint: rgba(255, 255, 255, 0.34); color: #fff; }
+html.glass .sheet-group { background: rgba(255, 255, 255, 0.05); }
+
+/* Refraction (Chromium): bend the backdrop first, then frost it. */
+html.lg-supported .lg-refract.round,
+html.lg-supported .lg-refract.menu,
+html.lg-supported .lg-refract.toast,
+html.lg-supported .lg-refract.sheet,
+html.lg-supported .lg-refract.qtoggle,
+html.lg-supported .lg-refract.sheet-btn,
+html.lg-supported .stepper .lg-refract,
+html.lg-supported .lg-refract.ibtn:hover,
+html.lg-supported .lg-refract.ibtn[aria-pressed="true"] {
+  -webkit-backdrop-filter: var(--lg-filter) blur(var(--lg-blur)) saturate(1.9) brightness(1.06);
+  backdrop-filter: var(--lg-filter) blur(var(--lg-blur)) saturate(1.9) brightness(1.06);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Find lyrics window */
+
+.pill-search {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.pill-search:hover { background: rgba(255, 255, 255, 0.22); }
+
+.sheet-foot {
+  padding: 10px 24px 16px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+}
+
+.lyric-search {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: max(48px, 10vh) 16px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity .25s;
+}
+.lyric-search.open { opacity: 1; }
+.ls-panel {
+  width: min(640px, 100%);
+  max-height: min(640px, 80vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 26px;
+  background: rgba(28, 32, 42, 0.78);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateY(-12px) scale(.97);
+  transition: transform .4s var(--spring);
+  overflow: hidden;
+  font-size: 15px;
+}
+.lyric-search.open .ls-panel { transform: none; }
+.ls-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px 20px;
+}
+.ls-icon { flex: none; width: 20px; height: 20px; fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2.2; stroke-linecap: round; }
+.ls-bar input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 500;
+}
+.ls-bar input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.ls-bar input::-webkit-search-cancel-button { display: none; }
+.ls-status {
+  padding: 0 20px 8px;
+  min-height: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+.lyric-search.loading .ls-status::after {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-left: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: -1px;
+  animation: ls-spin .8s linear infinite;
+}
+@keyframes ls-spin { to { transform: rotate(360deg); } }
+.ls-results { flex: 1; overflow-y: auto; padding: 0 8px 8px; overscroll-behavior: contain; scrollbar-width: thin; }
+.ls-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  text-align: left;
+  transition: background .15s;
+}
+.ls-row:hover { background: rgba(255, 255, 255, 0.07); }
+.ls-row.sel { background: rgba(255, 255, 255, 0.13); }
+.ls-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ls-title, .ls-sub { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ls-title { font-weight: 600; }
+.ls-sub { font-size: 13px; color: rgba(255, 255, 255, 0.55); }
+.ls-meta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.ls-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+}
+.ls-badge.word { background: rgba(52, 199, 89, 0.22); color: #7ee29a; }
+.ls-src { font-size: 11.5px; color: rgba(255, 255, 255, 0.4); }
+.ls-foot {
+  padding: 10px 20px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.ls-foot a { color: rgba(255, 255, 255, 0.65); }
+@media (max-width: 560px) {
+  .ls-meta .ls-src { display: none; }
+}
+
+/* Glass version */
+html.glass .ls-panel {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.02) 55%, rgba(255, 255, 255, 0.06)),
+    rgba(22, 26, 36, 0.5);
+  -webkit-backdrop-filter: blur(26px) saturate(1.9) brightness(1.04);
+  backdrop-filter: blur(26px) saturate(1.9) brightness(1.04);
+  box-shadow:
+    inset 1.5px 1.5px 1px -1px rgba(255, 255, 255, 0.8),
+    inset -1px -1px 1px -0.5px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    0 30px 80px rgba(0, 0, 0, 0.45);
+}
+html.lg-supported .lg-refract.ls-panel {
+  -webkit-backdrop-filter: var(--lg-filter) blur(26px) saturate(1.9) brightness(1.04);
+  backdrop-filter: var(--lg-filter) blur(26px) saturate(1.9) brightness(1.04);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Animated covers (Apple Music motion artwork) */
+
+.art video.motion-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity .8s ease;
+  pointer-events: none;
+}
+.art.motion-on video.motion-art { opacity: 1; }
+.art .art-drop { z-index: 1; }
+
+.as-thumb {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 7px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+.ls-badge.pending { opacity: 0.55; }
+
+/* ------------------------------------------------------------------------ */
+/* Full screen */
+
+#fullscreenBtn .i-exit { display: none; }
+#fullscreenBtn[aria-pressed="true"] .i-enter { display: none; }
+#fullscreenBtn[aria-pressed="true"] .i-exit { display: inline; }
+#fullscreenBtn[aria-pressed="true"] { background: none; color: rgba(255, 255, 255, 0.6); }
+#fullscreenBtn[aria-pressed="true"]:hover { color: #fff; }
+html.idle, html.idle * { cursor: none !important; }
+.controls { display: block; }
+
+/* ------------------------------------------------------------------------ */
+/* Apple Music Mode: the iPhone lyrics screen. A portrait stage (the whole
+   window in the app, a centred column in a wide browser window). Sizes are
+   in --p: one pixel of a 924 px wide iPhone screenshot. */
+
+html.am-mode {
+  --stage-w: min(100vw, calc(100dvh * 0.462));
+  --p: calc(var(--stage-w) / 924);
+  --lyric-size: calc(var(--p) * 78);
+}
+html.am-mode, html.am-mode body { overflow: hidden; }
+
+.am-mode .app,
+.am-mode .app.no-lyrics {
+  display: block;
+  position: relative;
+  width: var(--stage-w);
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+.am-mode .grab,
+.am-mode.desktop .grab {
+  display: block;
+  top: calc(var(--p) * 40);
+  width: calc(var(--p) * 142);
+  height: calc(var(--p) * 10);
+  margin-left: calc(var(--p) * -71);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Header: small cover, title and artist, star, more. */
+.am-mode .player {
+  position: absolute;
+  top: calc(var(--p) * 100);
+  left: calc(var(--p) * 78);
+  right: calc(var(--p) * 70);
+  height: calc(var(--p) * 168);
+  padding: 0;
+  display: block;
+  z-index: 5;
+}
+.am-mode .player-inner {
+  width: auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+.am-mode .art {
+  flex: none;
+  width: calc(var(--p) * 168);
+  border-radius: calc(var(--p) * 14);
+  transform: none !important;  /* no play/pause zoom on the small cover */
+  box-shadow: 0 calc(var(--p) * 14) calc(var(--p) * 40) rgba(0, 0, 0, 0.35);
+  z-index: 1;
+}
+.am-mode .art-drop { padding: 4px; font-size: 10px; }
+.am-mode .meta {
+  flex: 1;
+  min-width: 0;
+  margin: 0 0 0 calc(var(--p) * 34);
+  gap: calc(var(--p) * 18);
+}
+.am-mode .title { font-size: calc(var(--p) * 38); font-weight: 600; }
+.am-mode .artist { font-size: calc(var(--p) * 34); margin-top: calc(var(--p) * 6); }
+/* Star and ••• are plain glyphs here, like on the iPhone. */
+.am-mode .meta .round,
+html.glass.am-mode .meta .round,
+html.lg-supported.am-mode .meta .lg-refract.round {
+  width: calc(var(--p) * 64);
+  height: calc(var(--p) * 64);
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.am-mode .meta .round:hover { background: rgba(255, 255, 255, 0.1); }
+.am-mode .meta .round svg { width: 90%; height: 90%; }
+.am-mode #favBtn svg { stroke-width: 1.6; }
+.am-mode .meta .menu {
+  top: calc(100% + 8px);
+  bottom: auto;
+  transform-origin: top right;
+  max-height: calc(100dvh - var(--p) * 300);
+  overflow-y: auto;
+}
+
+/* Lyrics fill the rest of the screen, left-aligned under the header. */
+.am-mode .lyrics {
+  position: absolute;
+  top: calc(var(--p) * 290);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 calc(var(--p) * 60), #000 82%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 calc(var(--p) * 60), #000 82%, transparent 100%);
+}
+.am-mode .amll-host.amll-lyric-player,
+.am-mode .lyrics-scroller {
+  left: calc(var(--p) * 36);   /* AMLL pads lines; text lines up with the cover */
+  width: calc(100% - var(--p) * 100);
+}
+.am-mode .lyrics-empty { left: calc(var(--p) * 78); right: calc(var(--p) * 78); top: 20%; }
+
+/* Playback controls slide up when the pointer moves, then hide again. */
+.am-mode .controls {
+  --u: calc(var(--p) * 1.25);
+  position: fixed;  /* the stage, not the header it sits in */
+  left: calc(50% - var(--stage-w) / 2);
+  width: var(--stage-w);
+  bottom: 0;
+  z-index: 6;
+  padding: calc(var(--p) * 90) calc(var(--p) * 78) calc(var(--p) * 56);
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.25) 40%, rgba(0, 0, 0, 0.4));
+  opacity: 0;
+  transform: translateY(calc(var(--p) * 40));
+  pointer-events: none;
+  transition: opacity .45s ease, transform .55s cubic-bezier(.2, .8, .2, 1);
+}
+.am-mode .app.show-controls .controls {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.am-mode .controls .progress { margin-top: 0; }
+.am-mode .controls .menu.queue { bottom: calc(100% + 10px); }
+
+/* ------------------------------------------------------------------------ */
+/* Settings: text fields, Apple Music account, Discord status */
+
+.set-input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow .2s, background .2s;
+}
+.set-input:focus { background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.45); }
+.set-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.acct-state { font-size: 14px; color: rgba(255, 255, 255, 0.6); text-align: right; }
+.acct-buttons { display: flex; gap: 8px; margin-top: 10px; }
+.acct-buttons .pill { padding: 8px 14px; font-size: 14px; }
+.discord-status { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+.discord-status.error { color: #ffb4ab; }
+.desktop-only { display: none; }
+.desktop .desktop-only { display: inline; }
+.ls-row.ls-apple .ls-src { color: #ff8095; }
+
+/* ------------------------------------------------------------------------ */
+/* Shared bits for the 2.0 panels */
+
+.pill-small { padding: 7px 14px; font-size: 14px; }
+.pill-ghost { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.pill-ghost:hover { background: rgba(255, 255, 255, 0.2); }
+.pill.danger { background: rgba(255, 90, 90, 0.85); color: #fff; }
+.pill.pill-ghost.danger { background: rgba(255, 90, 90, 0.18); color: #ffb4ab; }
+.pill:disabled { opacity: 0.45; pointer-events: none; }
+.link-btn { border: 0; background: none; color: rgba(255, 255, 255, 0.6); font-size: 14px; font-weight: 600; padding: 4px 6px; border-radius: 8px; }
+.link-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+.menu-label { padding: 8px 12px 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: rgba(255, 255, 255, 0.45); }
+.desktop-only-item { display: none !important; }
+.desktop .desktop-only-item { display: flex !important; }
+kbd { display: inline-block; min-width: 1.5em; padding: 0 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.14); font: 600 11px/1.6 var(--font); text-align: center; color: rgba(255, 255, 255, 0.85); }
+
+/* ------------------------------------------------------------------------ */
+/* Library sheet (left side) */
+
+.lib-sheet { right: auto; left: 16px; width: min(420px, calc(100vw - 32px)); transform: translateX(calc(-100% - 40px)); }
+.lib-sheet.open { transform: none; }
+.lib-tabs { padding: 0 16px 6px; }
+.lib-tabs .segmented { width: 100%; }
+.lib-body { position: relative; }
+.lr-list { margin-bottom: 4px; }
+.lr { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 4px; }
+.lr + .lr { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.lr:hover { background: rgba(255, 255, 255, 0.06); }
+.lr.current .lib-title { color: #fff; }
+.lr.current .lib-title::before { content: '♪ '; color: #ff8095; }
+.lr-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 7px 6px 7px 10px; border: 0; background: none; text-align: left; }
+.lr-dur { flex: none; font-size: 12px; color: rgba(255, 255, 255, 0.4); font-variant-numeric: tabular-nums; }
+.lr-more { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: rgba(255, 255, 255, 0.55); padding: 0; opacity: 0; transition: opacity .15s, background .15s; }
+.lr:hover .lr-more, .lr-more:focus-visible { opacity: 1; }
+.lr-more:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.lr-more svg { width: 18px; height: 18px; fill: currentColor; }
+@media (hover: none) { .lr-more { opacity: 1; } }
+.lr-grip { flex: none; width: 22px; display: grid; place-items: center; cursor: grab; color: rgba(255, 255, 255, 0.3); padding-left: 6px; }
+.lr-grip svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.lr.dragging-row { opacity: 0.4; }
+.lr.drop-above { box-shadow: inset 0 2px 0 #ff8095; }
+.lr.drop-below { box-shadow: inset 0 -2px 0 #ff8095; }
+.lib-sub em { font-style: normal; color: rgba(255, 255, 255, 0.35); }
+.queue-empty { padding: 14px 16px; }
+.q-controls { display: flex; gap: 8px; margin: 6px 0 4px; }
+.q-controls .qtoggle { position: relative; }
+.qtoggle .one { display: none; position: absolute; right: 30%; top: 4px; font-size: 9px; font-weight: 800; }
+.qtoggle[data-mode="one"] .one { display: block; }
+.lib-section-head { display: flex; align-items: center; justify-content: space-between; }
+.lib-section-head .sheet-section { margin-right: 0; }
+.lib-tools { display: flex; gap: 8px; margin: 6px 0 10px; }
+.lib-search, .lib-sort {
+  height: 36px; border: 0; border-radius: 10px; color: #fff; font: inherit; font-size: 14px;
+  background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); outline: none;
+}
+.lib-search { flex: 1; min-width: 0; padding: 0 12px; }
+.lib-search:focus { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4); }
+.lib-sort { padding: 0 8px; }
+.lib-sort option { background: #2a2f3a; }
+.lib-folders { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.folder-chip { display: inline-flex; align-items: center; gap: 2px; max-width: 100%; padding: 4px 4px 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); font-size: 13px; }
+.folder-chip button { width: 20px; height: 20px; border: 0; border-radius: 50%; background: none; display: grid; place-items: center; padding: 0; color: rgba(255, 255, 255, 0.6); }
+.folder-chip button:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
+.folder-chip svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.lib-count { font-size: 12px; color: rgba(255, 255, 255, 0.4); margin: 0 4px 6px; }
+.lib-more { display: block; width: 100%; padding: 10px; }
+.pl-list { margin-top: 10px; }
+.pl-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 9px 12px; border: 0; background: none; text-align: left; }
+.pl-row + .pl-row { border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.pl-row:hover { background: rgba(255, 255, 255, 0.06); }
+.pl-icon { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 8px; font-size: 18px; background: linear-gradient(135deg, #ff6a88, #7a5cff); }
+.pl-head { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; }
+.pl-back { width: 34px; padding: 0; display: grid; place-items: center; }
+.pl-back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.pl-name { margin: 0; font-size: 20px; font-weight: 700; cursor: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.row-menu { position: absolute; bottom: auto; min-width: 200px; transform-origin: top right; z-index: 5; max-height: 60vh; overflow-y: auto; }
+.ask {
+  position: absolute; left: 16px; right: 16px; top: 120px; z-index: 6;
+  padding: 16px; border-radius: 18px;
+  background: rgba(40, 46, 58, 0.96); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  animation: menu-in .3s var(--spring);
+}
+.ask-title { font-weight: 600; margin-bottom: 4px; }
+.ask-buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+/* ------------------------------------------------------------------------ */
+/* About: updates, source check */
+
+.about-version { font-weight: 400; color: rgba(255, 255, 255, 0.5); margin-left: 4px; }
+.about-update { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; font-size: 14px; color: rgba(255, 255, 255, 0.7); }
+.source-list { margin-top: 10px; display: grid; gap: 4px; }
+.src-row { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.src-detail { color: rgba(255, 255, 255, 0.5); text-align: right; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, 0.25); }
+.src-dot.wait { animation: pulse-dot 1s ease-in-out infinite; }
+.src-dot.ok { background: #34c759; }
+.src-dot.fail { background: #ff453a; }
+.src-dot.skip { background: rgba(255, 255, 255, 0.3); }
+@keyframes pulse-dot { 50% { opacity: .3; } }
+
+/* ------------------------------------------------------------------------ */
+/* Sync editor (left sheet) */
+
+.sync-sheet { right: auto; left: 16px; width: min(460px, calc(100vw - 32px)); transform: translateX(calc(-100% - 40px)); }
+.sync-sheet.open { transform: none; }
+.sync-bar { display: flex; align-items: center; gap: 12px; padding: 0 20px 10px; }
+.sync-tap { flex: none; padding: 12px 22px; font-size: 16px; }
+.sync-tap kbd { background: rgba(0, 0, 0, 0.12); color: inherit; }
+.sync-tap:active { transform: scale(.94); }
+.sync-help { font-size: 12.5px; line-height: 1.5; color: rgba(255, 255, 255, 0.55); }
+.sync-all { display: flex; align-items: center; gap: 6px; padding: 0 20px 8px; font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+.sync-all span { flex: 1; }
+.sync-all .sheet-btn { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.sync-list { padding-top: 0; }
+.sync-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; cursor: pointer; }
+.sync-row:hover { background: rgba(255, 255, 255, 0.05); }
+.sync-row.target { background: rgba(255, 255, 255, 0.12); box-shadow: inset 3px 0 0 #ff8095; }
+.sync-row.playing .sync-text { color: #fff; }
+.sync-time { border: 0; border-radius: 6px; padding: 3px 6px; background: rgba(255, 255, 255, 0.08); font: 600 12.5px/1.2 ui-monospace, "Cascadia Mono", Consolas, monospace; color: rgba(255, 255, 255, 0.75); }
+.sync-time.moved { color: #ffd479; }
+.sync-text { font-size: 14px; font-weight: 600; color: rgba(255, 255, 255, 0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color .2s; }
+.sync-nudge { display: flex; gap: 2px; opacity: 0.35; transition: opacity .15s; }
+.sync-row:hover .sync-nudge, .sync-row.target .sync-nudge { opacity: 1; }
+.sync-nudge button { width: 26px; height: 26px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.1); padding: 0; font-size: 14px; }
+.sync-nudge button:hover { background: rgba(255, 255, 255, 0.22); }
+.sync-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 18px; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+
+/* ------------------------------------------------------------------------ */
+/* Lyric card dialog */
+
+.card-dialog { align-items: center; padding-top: 16px; }
+.card-panel { width: min(980px, 100%); max-height: min(760px, 92vh); flex-direction: row; gap: 0; }
+.card-preview { flex: 1.1; min-width: 0; display: grid; place-items: center; padding: 22px; background: rgba(0, 0, 0, 0.2); }
+.card-preview canvas { width: 100%; max-height: calc(min(760px, 92vh) - 44px); aspect-ratio: 1080 / 1350; object-fit: contain; border-radius: 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4); }
+.card-side { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18px 18px 18px 20px; gap: 10px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; }
+.card-head h2 { margin: 0; font-size: 22px; }
+.card-hint { font-size: 13px; color: rgba(255, 255, 255, 0.5); }
+.card-lines { flex: 1; min-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin: 0 -6px; }
+.card-line { text-align: left; border: 0; border-radius: 10px; padding: 7px 10px; background: none; font-weight: 600; color: rgba(255, 255, 255, 0.55); }
+.card-line:hover { background: rgba(255, 255, 255, 0.07); }
+.card-line.sel { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.card-options { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.card-trans { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+@media (max-width: 760px) {
+  .card-panel { flex-direction: column; overflow-y: auto; }
+  .card-preview canvas { max-height: 50vh; }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Now Playing (Apple Music Mode with the lyrics hidden): big cover,
+   title, controls; the tall animated cover fills the top when there is one. */
+
+.now-bg { display: none; }
+html.am-mode.now-playing .now-bg {
+  display: block;
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 78%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  pointer-events: none;
+}
+.now-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease; }
+.now-bg.motion-on video { opacity: 1; }
+
+html.am-mode.now-playing .player {
+  top: auto;
+  bottom: calc(var(--p) * 60);
+  height: auto;
+  left: calc(var(--p) * 78);
+  right: calc(var(--p) * 78);
+}
+html.am-mode.now-playing .player-inner { flex-direction: column; align-items: stretch; height: auto; }
+html.am-mode.now-playing .art {
+  width: 100%;
+  border-radius: calc(var(--p) * 22);
+  margin-bottom: calc(var(--p) * 70);
+  box-shadow: 0 calc(var(--p) * 30) calc(var(--p) * 80) rgba(0, 0, 0, 0.4);
+}
+html.am-mode.now-playing .now-bg.motion-on ~ .player .art { visibility: hidden; }
+html.am-mode.now-playing .meta { margin: 0 0 calc(var(--p) * 30); }
+html.am-mode.now-playing .title { font-size: calc(var(--p) * 44); }
+html.am-mode.now-playing .artist { font-size: calc(var(--p) * 40); }
+html.am-mode.now-playing .meta .menu { top: auto; bottom: calc(100% + 8px); transform-origin: bottom right; }
+html.am-mode.now-playing .controls,
+html.am-mode.now-playing .app .controls {
+  position: static;
+  width: auto;
+  padding: 0;
+  background: none;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}

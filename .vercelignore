@@ -1,0 +1,9 @@
+desktop
+test
+scripts
+*.zip
+.env*
+.vercel
+.claude
+.gitignore
+node_modules
