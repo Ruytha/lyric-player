@@ -39,6 +39,7 @@ const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
 
 const $ = (id) => document.getElementById(id);
 if (navigator.userAgent.includes(' Electron/')) document.documentElement.classList.add('desktop');
+if (window.lyricPlayerNative?.platform === 'darwin') document.documentElement.classList.add('mac');
 const audio = $('audio');
 const app = $('app');
 const native = window.lyricPlayerNative || null;
@@ -261,7 +262,17 @@ settings.subscribe((key, value, s) => {
   if (reactor.enabled && !audio.paused) reactor.attach();
 
   setGlassEnabled(s.glass);
+  if (key === null || key === 'macGlass') applyGlassWindow();
 });
+
+// Mac (macOS 26): the window itself can be real Liquid Glass, showing the
+// desktop through it, instead of the cover background (Settings → Background).
+var glassWindowOk = false; // var: the settings subscription above runs first
+function applyGlassWindow() {
+  const on = glassWindowOk && !!settings?.get('macGlass');
+  document.documentElement.classList.toggle('glass-window', on);
+}
+native?.glass?.('supported').then((ok) => { glassWindowOk = !!ok; applyGlassWindow(); }).catch(() => {});
 glassAll('.round, .ibtn, .menu, .sheet, .qtoggle, .stepper button, .seg, .sheet-btn, .ls-panel');
 
 // ---------------------------------------------------------------------------
@@ -1068,7 +1079,7 @@ function frame(now) {
     ui.update(media, dt, playing);
     if (!state.lyricsHidden) renderer.update(clock.lyricTime, dt, playing);
     reactor.update(dt, playing);
-    background.update(dt, playing, reactor);
+    if (!glassWindowOk || !settings.get('macGlass')) background.update(dt, playing, reactor);
   }
   if (syncEditor.isOpen) syncEditor.update(clock.lyricTime);
   if ((miniOpen || barOpen) && now - miniSent > 400) sendMiniState();

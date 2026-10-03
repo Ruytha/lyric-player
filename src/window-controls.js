@@ -5,6 +5,8 @@ export function bindWindowControls({ onFullscreen }) {
   const n = window.lyricPlayerNative;
   const host = document.getElementById('winControls');
   if (!n?.windowControl || !host) return;
+  // The Mac has its own (real) window buttons in the same place.
+  if (n.platform === 'darwin') return;
   host.hidden = false;
   host.addEventListener('click', (e) => {
     const b = e.target.closest('[data-win]');

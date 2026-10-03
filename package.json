@@ -1,6 +1,6 @@
 {
   "name": "ttml-lyric-player",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "private": true,
   "type": "module",
   "lyricPlayer": {

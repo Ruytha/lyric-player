@@ -1,0 +1,27 @@
+{
+  "version": "2.4.0",
+  "windows": {
+    "installer": {
+      "url": "",
+      "size": "107 MB",
+      "file": "Lyric-Player-Setup-2.3.0.exe"
+    },
+    "portable": {
+      "url": "",
+      "size": "107 MB",
+      "file": "Lyric-Player-2.3.0-portable.exe"
+    }
+  },
+  "mac": {
+    "arm64": {
+      "url": "",
+      "size": "",
+      "file": "Lyric-Player-2.4.0-mac-arm64.dmg"
+    },
+    "x64": {
+      "url": "",
+      "size": "",
+      "file": "Lyric-Player-2.4.0-mac-x64.dmg"
+    }
+  }
+}

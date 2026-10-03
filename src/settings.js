@@ -34,6 +34,7 @@ export const SCHEMA = [
   { key: 'bgScale', label: 'Render quality', hint: 'Lower is lighter on the GPU', type: 'range', min: 0.25, max: 1, step: 0.05, def: 0.5, fmt: pct },
   { key: 'bgFps', label: 'Frame rate', type: 'range', min: 15, max: 144, step: 1, def: 60, fmt: (v) => `${v} fps` },
   { key: 'bgStatic', label: 'Still background', hint: 'Stops the motion to save power', type: 'toggle', def: false },
+  { key: 'macGlass', label: 'Liquid Glass window', hint: 'macOS 26: the window becomes real Liquid Glass with your desktop showing through, instead of the cover background', type: 'toggle', def: false, desktop: true, mac: true },
 
   { section: 'Artwork' },
   { key: 'autoArt', label: 'Find covers automatically', hint: 'Looks up the song on Apple Music: animated cover, or the cover if the file has none', type: 'toggle', def: true },
@@ -47,9 +48,9 @@ export const SCHEMA = [
   { key: 'followPc', label: 'Follow music playing on this PC', hint: 'When Spotify, Apple Music, a browser or another app plays and Lyric Player doesn’t, show its song, cover and synced lyrics', type: 'toggle', def: true, desktop: true },
 
   { section: 'App', desktop: true },
-  { key: 'tray', label: 'Keep running in the tray', hint: 'Closing the window leaves Lyric Player in the notification area (by the clock), still following your music. Quit from its menu there', type: 'toggle', def: false, desktop: true },
-  { key: 'startup', label: 'Start with Windows', type: 'toggle', def: false, desktop: true },
-  { key: 'startHidden', label: 'Start in the tray', hint: 'When it starts with Windows, wait in the tray instead of opening the window', type: 'toggle', def: true, desktop: true },
+  { key: 'tray', label: 'Keep running in the tray', hint: 'Closing the window leaves Lyric Player running, with an icon by the clock (Windows) or in the menu bar (Mac), still following your music. Quit from its menu there', type: 'toggle', def: false, desktop: true },
+  { key: 'startup', label: 'Open when you sign in', type: 'toggle', def: false, desktop: true },
+  { key: 'startHidden', label: 'Start in the tray', hint: 'When it opens at sign-in, wait in the tray instead of opening the window', type: 'toggle', def: true, desktop: true },
 
   { section: 'Discord', desktop: true },
   { key: 'discord', label: 'Discord Rich Presence', hint: 'Shows what you are playing on your Discord profile (the Discord app must be open)', type: 'toggle', def: false, desktop: true },

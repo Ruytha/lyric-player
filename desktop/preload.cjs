@@ -25,4 +25,6 @@ contextBridge.exposeInMainWorld('lyricPlayerNative', {
   windowControl: (kind) => ipcRenderer.invoke('window', kind),
   onWindowState: (fn) => ipcRenderer.on('window-state', (_e, s) => fn(s)),
   appPrefs: (kind, params) => ipcRenderer.invoke('app-prefs', kind, params),
+  glass: (kind) => ipcRenderer.invoke('glass', kind),
+  platform: process.platform,
 });

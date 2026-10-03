@@ -1,0 +1,53 @@
+# Builds the desktop apps. Mac builds need a Mac, so they're made here on
+# GitHub's macOS machines. Run it from the Actions tab ("Run workflow") or
+# by pushing a tag like v2.4.0; the files appear under the run's Artifacts.
+
+name: Build desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+      - name: Build (.dmg and .zip, Apple silicon and Intel)
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lyric-player-mac
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+      - name: Build (installer and portable)
+        working-directory: desktop
+        run: npx electron-builder --win nsis portable --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lyric-player-windows
+          path: desktop/dist/*.exe
+          if-no-files-found: error

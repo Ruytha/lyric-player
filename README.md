@@ -519,3 +519,29 @@ plain files, and linking to the repository covers the rest.
 - **Interlude dots:** breathe 1 → 1.25, light up one after another, then swell and collapse just before the next line.
 - **Background:** three rotating copies of the cover are drawn into a canvas at 1/12 resolution and upscaled. That's cheaper than full-screen CSS blur layers.
 - `window.lyricPlayer` exposes the audio element, clock and renderer for console debugging.
+
+## Mac version
+
+The desktop app also builds for macOS (`npm run dist:mac` in `desktop/`, on a
+Mac, or the **Build desktop apps** GitHub Action, which makes the .dmg and
+.zip for Apple silicon and Intel on GitHub's Macs). On a Mac:
+
+- **Real Liquid Glass** (macOS 26) via `electron-liquid-glass`, an
+  `NSGlassEffectView` behind the window: the mini player and floating lyrics
+  are glass, and Settings → Background → **Liquid Glass window** makes the
+  main window glass, with the desktop showing through. Older macOS gets the
+  regular blur. Glass covers whole windows; the buttons inside the page keep
+  the CSS Liquid Glass.
+- The real window buttons, an app menu (Cmd+Q, copy / paste), the Dock and
+  the menu bar icon.
+- **On This Mac:** Spotify and Apple Music are read with AppleScript once a
+  second (`desktop/system-media-mac.cjs`); macOS asks once to allow it.
+- The app isn't signed with an Apple Developer ID, so it gets an ad-hoc
+  signature (`desktop/build/after-pack.cjs`) and people confirm the first open
+  (steps on the download page). Notarizing needs a paid Apple Developer account.
+
+## Download page
+
+`download/lyricviewer/` is served at `files.ruytha.dev/download/lyricviewer`.
+The links are in `download/lyricviewer/downloads.json` (empty = "coming
+soon"); the notes come from `src/changelog.json`.

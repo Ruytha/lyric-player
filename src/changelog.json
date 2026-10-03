@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.4.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Lyric Player for Mac. On macOS 26 it uses Apple's real Liquid Glass: the mini player and floating lyrics are glass, and Settings → Background → Liquid Glass window turns the whole window into glass with your desktop showing through.",
+      "On a Mac it follows Spotify and Apple Music, with the Mac's own window buttons, menu bar icon and Dock.",
+      "Download page: files.ruytha.dev/download/lyricviewer."
+    ]
+  },
+  {
     "version": "2.3.0",
     "date": "2026-10-03",
     "notes": [

@@ -18,6 +18,7 @@ export class SettingsPanel {
     this.onClose = onClose;
     this.custom = custom;
     this.desktop = document.documentElement.classList.contains('desktop');
+    this.mac = document.documentElement.classList.contains('mac');
     this.controls = new Map();
     this.body = sheet.querySelector('.sheet-body');
     this.build();
@@ -54,6 +55,7 @@ export class SettingsPanel {
     let group = null;
     for (const s of SCHEMA) {
       if (s.desktop && !this.desktop) continue;
+      if (s.mac && !this.mac) continue;
       if (s.section) {
         this.body.appendChild(h('h3', 'sheet-section', s.section));
         group = h('div', 'sheet-group');

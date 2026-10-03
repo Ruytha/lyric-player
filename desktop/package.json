@@ -1,7 +1,7 @@
 {
   "name": "lyric-player-desktop",
   "productName": "Lyric Player",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Apple Music-style TTML lyric player",
   "author": {
     "name": "Ruytha"
@@ -10,7 +10,8 @@
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win nsis portable"
+    "dist": "electron-builder --win nsis portable",
+    "dist:mac": "electron-builder --mac"
   },
   "devDependencies": {
     "electron": "^44.5.1",
@@ -32,7 +33,8 @@
       "system-media.ps1",
       "web-update.cjs",
       "desktop-prefs.cjs",
-      "build/icon.png"
+      "build/icon.png",
+      "system-media-mac.cjs"
     ],
     "extraResources": [
       {
@@ -83,10 +85,48 @@
     "portable": {
       "artifactName": "Lyric-Player-${version}-portable.${ext}"
     },
-    "copyright": "Copyright © 2026 Ruytha"
+    "copyright": "Copyright © 2026 Ruytha",
+    "asarUnpack": [
+      "node_modules/electron-liquid-glass/**"
+    ],
+    "afterPack": "build/after-pack.cjs",
+    "mac": {
+      "icon": "build/icon.png",
+      "category": "public.app-category.music",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": null,
+      "darkModeSupport": true,
+      "minimumSystemVersion": "12.0",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Lyric Player reads what Spotify and Apple Music are playing (song, artist, position) to show its lyrics, and sends play, pause and skip when you use its buttons."
+      },
+      "artifactName": "Lyric-Player-${version}-mac-${arch}.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Lyric-Player-${version}-mac-${arch}.${ext}",
+      "title": "Lyric Player ${version}"
+    }
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
     "music-metadata": "^11.16.1"
+  },
+  "optionalDependencies": {
+    "electron-liquid-glass": "^1.1.1"
   }
 }

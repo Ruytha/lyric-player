@@ -10,6 +10,7 @@ const native = window.lyricPlayerNative;
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 const BAR = params.has('bar');
+if (params.has('glass')) document.body.classList.add('native-glass');
 if (BAR) {
   document.body.classList.add('bar');
   // The bar uses its own line elements; the rest of this file draws into them.

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lyric Player · Download</title>
+  <meta name="description" content="Lyric Player: Apple Music–style synced lyrics for your music and for Spotify and Apple Music. Free for Windows and Mac.">
+  <meta name="theme-color" content="#0d0d12">
+  <link rel="icon" href="icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <style>
+    :root {
+      --bg: #0d0d12;
+      --panel: rgba(255, 255, 255, 0.055);
+      --panel-line: rgba(255, 255, 255, 0.1);
+      --text: #f5f5f7;
+      --muted: rgba(245, 245, 247, 0.62);
+      --faint: rgba(245, 245, 247, 0.4);
+      --accent: #fa2d48;
+      --accent-2: #ff6a7d;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.5; overflow-x: hidden; }
+    a { color: inherit; }
+    .wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+
+    /* Moving colour behind the top, like the player's background */
+    .glow { position: absolute; inset: 0 0 auto; height: 980px; overflow: hidden; pointer-events: none; z-index: 0; }
+    .glow i { position: absolute; width: 620px; height: 620px; border-radius: 50%; filter: blur(110px); opacity: 0.55; animation: drift 26s ease-in-out infinite alternate; }
+    .glow i:nth-child(1) { background: #fa2d48; left: -140px; top: -120px; }
+    .glow i:nth-child(2) { background: #7b3ff2; right: -160px; top: 40px; animation-duration: 32s; animation-delay: -8s; }
+    .glow i:nth-child(3) { background: #ff9f0a; left: 32%; top: 300px; width: 460px; height: 460px; opacity: 0.32; animation-duration: 38s; }
+    .glow::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, var(--bg)); }
+    @keyframes drift { to { transform: translate(90px, 70px) scale(1.15) rotate(25deg); } }
+    @media (prefers-reduced-motion: reduce) { .glow i { animation: none; } }
+
+    header, main, footer { position: relative; z-index: 1; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; font-size: 17px; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .navlinks { display: flex; gap: 22px; font-size: 14px; }
+    .navlinks a { text-decoration: none; color: var(--muted); }
+    .navlinks a:hover { color: var(--text); }
+
+    .hero { text-align: center; padding: 64px 0 40px; }
+    .hero .icon { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 20px 60px rgba(250, 45, 72, 0.35), 0 0 0 1px rgba(255,255,255,0.08); }
+    h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.04; letter-spacing: -0.035em; margin: 26px 0 16px; font-weight: 800; }
+    h1 .grad { background: linear-gradient(90deg, #fff, #ffb3bd 45%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .lede { font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); max-width: 640px; margin: 0 auto; }
+    .cta { margin-top: 34px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; border: 0; cursor: pointer; font-family: inherit; transition: transform .15s, background .2s, opacity .2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
+    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 10px 30px rgba(250, 45, 72, 0.35); }
+    .btn-primary:hover { background: #ff4560; }
+    .btn-ghost { background: rgba(255, 255, 255, 0.1); color: var(--text); }
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.16); }
+    .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; box-shadow: none; }
+    .meta { margin-top: 14px; font-size: 13px; color: var(--faint); }
+
+    .shot { margin: 56px auto 0; max-width: 1000px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08); background: #111; }
+    .shot img { display: block; width: 100%; height: auto; }
+
+    section { padding: 72px 0 0; }
+    h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.025em; margin: 0 0 10px; line-height: 1.1; }
+    .sub { color: var(--muted); margin: 0 0 30px; max-width: 640px; }
+
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .card { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 22px; padding: 26px; backdrop-filter: blur(20px); }
+    .card.mine { border-color: rgba(250, 45, 72, 0.55); box-shadow: 0 0 0 1px rgba(250, 45, 72, 0.25) inset; }
+    .card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+    .os { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,0.08); }
+    .os svg { width: 24px; height: 24px; fill: #fff; }
+    .card h3 { margin: 0; font-size: 22px; }
+    .badge { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent-2); background: rgba(250, 45, 72, 0.14); padding: 4px 10px; border-radius: 999px; }
+    .req { color: var(--faint); font-size: 14px; margin: 4px 0 18px; }
+    .dl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); text-decoration: none; margin-top: 10px; transition: background .2s; }
+    .dl:hover { background: rgba(255,255,255,0.1); }
+    .dl b { display: block; font-size: 15px; }
+    .dl small { color: var(--faint); font-size: 13px; }
+    .dl .go { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); }
+    .dl .go svg { width: 16px; height: 16px; fill: #fff; }
+    .dl.soon { pointer-events: none; opacity: 0.55; }
+    .dl.soon .go { background: rgba(255,255,255,0.15); }
+    .note { margin-top: 16px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--panel-line); padding-top: 14px; }
+    .note summary { cursor: pointer; color: var(--text); font-weight: 600; }
+    .note ol { padding-left: 18px; margin: 8px 0 0; }
+    .note li + li { margin-top: 4px; }
+    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+
+    .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .feature { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px; padding: 22px; }
+    .feature .em { font-size: 26px; line-height: 1; }
+    .feature h3 { margin: 12px 0 6px; font-size: 17px; }
+    .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+
+    .changes { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 22px; padding: 6px 26px; }
+    .changes article { padding: 20px 0; }
+    .changes article + article { border-top: 1px solid var(--panel-line); }
+    .changes h3 { margin: 0 0 8px; font-size: 18px; display: flex; gap: 12px; align-items: baseline; }
+    .changes h3 span { font-size: 13px; color: var(--faint); font-weight: 500; }
+    .changes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+    .changes li + li { margin-top: 6px; }
+
+    footer { padding: 80px 0 48px; color: var(--faint); font-size: 13px; text-align: center; }
+    footer p { margin: 6px 0; }
+
+    @media (max-width: 820px) {
+      .cards, .features { grid-template-columns: minmax(0, 1fr); }
+      .navlinks { display: none; }
+      .hero { padding-top: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="wrap">
+    <nav>
+      <a class="brand" href="#"><img src="icon.png" alt=""> Lyric Player</a>
+      <div class="navlinks">
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="#whats-new">What’s new</a>
+        <a href="/">Open in your browser</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="hero">
+      <img class="icon" src="icon.png" alt="Lyric Player icon">
+      <h1>Every word,<br><span class="grad">right on time.</span></h1>
+      <p class="lede">Apple Music–style synced lyrics for the songs you play: your own music, or whatever’s playing in Spotify and Apple Music. Free for Windows and Mac.</p>
+      <div class="cta">
+        <a class="btn btn-primary" id="mainDl" href="#download">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg>
+          <span>Download</span>
+        </a>
+        <a class="btn btn-ghost" href="#download">All downloads</a>
+      </div>
+      <p class="meta" id="metaLine">Version 2.3.0 · Free</p>
+    </div>
+    <div class="shot" id="shot"><img src="screenshot.png" width="1440" height="900" alt="Lyric Player showing synced lyrics over a moving background"></div>
+
+    <section id="download">
+      <h2>Download</h2>
+      <p class="sub">The app updates itself after you install it, so you only download it once.</p>
+      <div class="cards">
+        <div class="card" id="cardWin">
+          <div class="card-top">
+            <div class="os"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.1 10.4 4v7.2H3zM11.4 3.9 21 2.5v8.7h-9.6zM3 12.2h7.4v7.2L3 18.3zM11.4 12.2H21v8.7l-9.6-1.4z"/></svg></div>
+            <h3>Windows</h3>
+            <span class="badge" hidden>Your computer</span>
+          </div>
+          <p class="req">Windows 10 or 11, 64-bit</p>
+          <a class="dl" data-dl="windows.installer"><span><b>Installer</b><small>Recommended · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
+          <a class="dl" data-dl="windows.portable"><span><b>Portable</b><small>No install, runs from anywhere · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
+          <details class="note">
+            <summary>Windows says “Windows protected your PC”?</summary>
+            The app isn’t signed with a paid certificate yet, so SmartScreen doesn’t know it. Click <b>More info</b>, then <b>Run anyway</b>. You only do this once.
+          </details>
+        </div>
+
+        <div class="card" id="cardMac">
+          <div class="card-top">
+            <div class="os"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9s-2-.9-3.3-.9C6.1 6.8 4.5 7.8 3.6 9.4c-1.9 3.2-.5 8 1.3 10.6.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8s2 .8 3.4.8 2.3-1.3 3.1-2.6c1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1-3.1-4.4zM13.9 5.1c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg></div>
+            <h3>Mac</h3>
+            <span class="badge" hidden>Your computer</span>
+          </div>
+          <p class="req">macOS 12 or later · real Liquid Glass on macOS 26</p>
+          <a class="dl" data-dl="mac.arm64"><span><b>Apple silicon</b><small>M1, M2, M3, M4 and later · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
+          <a class="dl" data-dl="mac.x64"><span><b>Intel</b><small>Older Macs · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
+          <details class="note">
+            <summary>First time opening it on a Mac</summary>
+            The app isn’t from the App Store or notarized by Apple yet, so macOS asks before opening it:
+            <ol>
+              <li>Open the .dmg and drag <b>Lyric Player</b> to <b>Applications</b>.</li>
+              <li>Open it. When macOS says it can’t check it, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</li>
+              <li>If it says the app “is damaged”, run this once in Terminal, then open it again:<br><code>xattr -cr "/Applications/Lyric Player.app"</code></li>
+              <li>To follow Spotify or Apple Music, allow it when macOS asks if Lyric Player may control them.</li>
+            </ol>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <h2>What it does</h2>
+      <p class="sub">Everything the Apple Music lyrics screen does, for any song.</p>
+      <div class="features">
+        <div class="feature"><div class="em">🎤</div><h3>Word-by-word lyrics</h3><p>Words light up as they’re sung, with background vocals, duets and the springy motion of Apple Music.</p></div>
+        <div class="feature"><div class="em">🎧</div><h3>Follows Spotify and Apple Music</h3><p>Play a song in another app and its cover and synced lyrics show up here, in time.</p></div>
+        <div class="feature"><div class="em">🔎</div><h3>Finds the lyrics for you</h3><p>Searches several lyrics libraries and picks the best match, word-synced whenever possible.</p></div>
+        <div class="feature"><div class="em">🌈</div><h3>A background that moves</h3><p>The iPhone’s flowing cover background, ported from Lyricify, plus animated album covers.</p></div>
+        <div class="feature"><div class="em">🪟</div><h3>Floating lyrics</h3><p>The line being sung, floating over your other windows and games. Clicks go straight through.</p></div>
+        <div class="feature"><div class="em">🌏</div><h3>Translations and romanization</h3><p>See what Japanese, Korean or Chinese songs mean, and how to sing along.</p></div>
+      </div>
+    </section>
+
+    <section id="whats-new">
+      <h2>What’s new</h2>
+      <p class="sub">The app gets these automatically.</p>
+      <div class="changes" id="changes"><article><p class="sub" style="margin:0">Loading…</p></article></div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <p>Made by Ruytha</p>
+    <p>Lyrics view powered by AMLL (AGPL-3.0). Background ported from Lyricify Backgrounds by WXRIW (Apache 2.0).<br>Lyric Player only shows lyrics; your music stays in the app that plays it.</p>
+  </footer>
+
+  <script>
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const get = (o, path) => path.split('.').reduce((x, k) => x && x[k], o);
+
+    // Which computer is this? (Apple silicon vs Intel from the graphics chip; Apple silicon if unsure.)
+    function detect() {
+      const ua = navigator.userAgent;
+      const plat = navigator.userAgentData?.platform || navigator.platform || '';
+      if (/Win/i.test(plat) || /Windows/i.test(ua)) return { os: 'windows', key: 'windows.installer', label: 'Download for Windows' };
+      if (/Mac/i.test(plat) || /Mac OS X/i.test(ua)) {
+        let arch = 'arm64';
+        try {
+          const gl = document.createElement('canvas').getContext('webgl');
+          const ext = gl && gl.getExtension('WEBGL_debug_renderer_info');
+          const r = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : '';
+          if (/Intel|AMD|Radeon/i.test(r) && !/Apple M\d/i.test(r)) arch = 'x64';
+        } catch { /* keep Apple silicon */ }
+        return { os: 'mac', key: `mac.${arch}`, label: 'Download for Mac' };
+      }
+      return { os: null };
+    }
+
+    async function setup() {
+      const me = detect();
+      let d = null;
+      try { d = await (await fetch('downloads.json', { cache: 'no-store' })).json(); } catch { /* links stay "coming soon" */ }
+      for (const a of document.querySelectorAll('[data-dl]')) {
+        const item = get(d, a.dataset.dl);
+        a.querySelector('[data-size]').textContent = item?.url ? (item.size || item.file || '') : 'coming soon';
+        if (item?.url) { a.href = item.url; a.rel = 'noopener'; } else a.classList.add('soon');
+      }
+      if (d?.version) document.getElementById('metaLine').textContent = `Version ${d.version} · Free`;
+      const main = document.getElementById('mainDl');
+      if (me.os) {
+        const card = document.getElementById(me.os === 'mac' ? 'cardMac' : 'cardWin');
+        card.classList.add('mine');
+        card.querySelector('.badge').hidden = false;
+        const item = get(d, me.key);
+        main.querySelector('span').textContent = item?.url ? me.label : `${me.label} · coming soon`;
+        if (item?.url) main.href = item.url; else main.setAttribute('aria-disabled', 'true');
+      }
+    }
+
+    async function changes() {
+      const box = document.getElementById('changes');
+      try {
+        const log = await (await fetch('/src/changelog.json', { cache: 'no-store' })).json();
+        box.innerHTML = log.slice(0, 4).map((e) => `
+          <article>
+            <h3>${esc(e.version)}${e.date ? `<span>${esc(new Date(e.date + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }))}</span>` : ''}</h3>
+            <ul>${e.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
+          </article>`).join('');
+      } catch {
+        box.closest('section').hidden = true;
+      }
+    }
+
+    setup();
+    changes();
+  </script>
+</body>
+</html>

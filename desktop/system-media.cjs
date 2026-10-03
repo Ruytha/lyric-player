@@ -1,10 +1,12 @@
 // What's playing on this PC (Spotify, Apple Music, browsers...), read from
 // Windows' media controls by a small PowerShell helper (system-media.ps1).
-// It runs only while "Follow music playing on this PC" is on.
+// It runs only while "Follow music playing on this PC" is on. On a Mac,
+// Spotify and Apple Music are asked instead (system-media-mac.cjs).
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { MacMedia } = require('./system-media-mac.cjs');
 
 class SystemMedia {
   constructor({ onState, log = () => {}, ownAppId = '' }) {
@@ -21,6 +23,11 @@ class SystemMedia {
 
   start() {
     this.wanted = true;
+    if (process.platform === 'darwin') {
+      this.mac ??= new MacMedia({ emit: (s) => this.emit(s), log: this.log });
+      this.mac.start();
+      return;
+    }
     if (this.child || process.platform !== 'win32') return;
     // The script lives in the app's asar, which PowerShell can't read, so it's
     // passed inline (as UTF-16LE base64, the way -EncodedCommand wants it).
@@ -60,6 +67,7 @@ class SystemMedia {
 
   stop() {
     this.wanted = false;
+    this.mac?.stop();
     clearTimeout(this.timer);
     const c = this.child;
     this.child = null;
@@ -85,10 +93,11 @@ class SystemMedia {
 
   emit(s) {
     this.state = s;
-    this.onState({ ...s, thumb: (s.track && this.thumbs.get(s.track)) || null });
+    this.onState({ ...s, thumb: s.thumb || (s.track && this.thumbs.get(s.track)) || null });
   }
 
   command(cmd, value) {
+    if (this.mac) return this.mac.command(cmd, value);
     if (!this.child) return false;
     const ok = ['toggle', 'play', 'pause', 'next', 'prev', 'seek'];
     if (!ok.includes(cmd)) return false;

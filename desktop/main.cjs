@@ -440,6 +440,48 @@ function relayUpdates() {
 }
 
 // ---------------------------------------------------------------------------
+// Mac: real Liquid Glass (macOS 26), an NSGlassEffectView behind a window's
+// web page, from the electron-liquid-glass add-on. Older macOS gets the
+// regular blur instead; Windows doesn't load it at all.
+
+const IS_MAC = process.platform === 'darwin';
+let liquidGlass;
+function glassModule() {
+  if (liquidGlass !== undefined) return liquidGlass;
+  liquidGlass = null;
+  if (!IS_MAC) return null;
+  try {
+    const m = require('electron-liquid-glass');
+    liquidGlass = m.default || m;
+  } catch (e) {
+    console.log(`[glass] not available: ${e.message}`);
+  }
+  return liquidGlass;
+}
+const glassSupported = () => { try { return !!glassModule()?.isGlassSupported(); } catch { return false; } };
+
+/** Puts glass behind the window's page once it has loaded (it stays across reloads). */
+function addGlass(w, { cornerRadius = 0, tint = '' } = {}) {
+  const lg = glassModule();
+  if (!lg) return;
+  w.webContents.once('did-finish-load', () => {
+    if (!alive(w)) return;
+    try {
+      const id = lg.addView(w.getNativeWindowHandle(), { cornerRadius, ...(tint ? { tintColor: tint } : {}) });
+      if (id < 0) console.log('[glass] not added');
+    } catch (e) { console.log(`[glass] ${e.message}`); }
+  });
+}
+
+function relayGlass() {
+  ipcMain.handle('glass', (event, kind) => {
+    if (!fromApp(event)) return false;
+    if (kind === 'supported') return IS_MAC && glassSupported();
+    return false;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Mini player: a small always-on-top window with the current line. The main
 // window sends it the state; its buttons send commands back.
 
@@ -475,7 +517,9 @@ function openBar() {
   bar.on('moved', save);
   bar.on('resized', save);
   bar.on('closed', () => { bar = null; sendTo(alive(win) ? win : null, 'mini-command', { cmd: 'closed-bar' }); updateTray(); });
-  bar.loadURL(`app://player/mini.html?bar=1&locked=${locked ? 1 : 0}&size=${prefs.get('barSize') || 34}`);
+  const glass = IS_MAC && glassSupported();
+  if (glass) addGlass(bar, { cornerRadius: 26 });
+  bar.loadURL(`app://player/mini.html?bar=1&locked=${locked ? 1 : 0}&size=${prefs.get('barSize') || 34}${glass ? '&glass=1' : ''}`);
 }
 
 function relayMini() {
@@ -505,7 +549,9 @@ function relayMini() {
       mini.setAlwaysOnTop(true, 'floating');
       mini.once('ready-to-show', () => mini.showInactive());
       mini.on('closed', () => { mini = null; sendTo(mainWin(), 'mini-command', { cmd: 'closed' }); });
-      mini.loadURL('app://player/mini.html');
+      const glass = IS_MAC && glassSupported();
+      if (glass) addGlass(mini, { cornerRadius: 22 });
+      mini.loadURL(`app://player/mini.html${glass ? '?glass=1' : ''}`);
       return true;
     }
     if (kind === 'close') { if (alive(mini)) mini.close(); return true; }
@@ -522,7 +568,8 @@ function relayMini() {
 let prefs = null;
 let tray = null;
 let nowPlaying = { title: '', artist: '', playing: false, has: false };
-const startedHidden = process.argv.includes('--hidden');
+// Windows passes --hidden from Start with Windows; macOS says it opened the app at login.
+const startedHidden = process.argv.includes('--hidden') || (process.platform === 'darwin' && (() => { try { return app.getLoginItemSettings().wasOpenedAtLogin; } catch { return false; } })());
 
 function showMain() {
   if (quitting) return;
@@ -565,7 +612,8 @@ function applyStartup() {
   const startup = !!prefs.get('startup');
   // Portable copies run from a temporary folder; point Windows at the .exe that was started.
   const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
-  app.setLoginItemSettings({ openAtLogin: startup, path: exe, args: prefs.get('startHidden') !== false ? ['--hidden'] : [] });
+  if (process.platform === 'darwin') app.setLoginItemSettings({ openAtLogin: startup });
+  else app.setLoginItemSettings({ openAtLogin: startup, path: exe, args: prefs.get('startHidden') !== false ? ['--hidden'] : [] });
 }
 
 function relayAppPrefs() {
@@ -601,7 +649,7 @@ function relaySystemMedia() {
   });
   ipcMain.handle('system-media', (event, kind, params = {}) => {
     if (!fromApp(event)) return false;
-    if (kind === 'start') { systemMedia.start(); return process.platform === 'win32'; }
+    if (kind === 'start') { systemMedia.start(); return process.platform === 'win32' || process.platform === 'darwin'; }
     if (kind === 'stop') { systemMedia.stop(); return true; }
     if (kind === 'command') return systemMedia.command(String(params.cmd || ''), params.value);
     return false;
@@ -720,8 +768,10 @@ function createWindow({ show = true } = {}) {
     title: 'Lyric Player',
     backgroundColor: '#1e1e1e',
     show: false,
-    // No title bar: the page draws macOS-style window buttons (relayWindowControls).
+    // No title bar. Windows: the page draws macOS-style window buttons
+    // (relayWindowControls). Mac: the real ones, placed where the page's would be.
     titleBarStyle: 'hidden',
+    ...(IS_MAC ? { trafficLightPosition: { x: 20, y: 20 }, transparent: true, backgroundColor: '#00000000' } : {}),
     icon: path.join(__dirname, 'build', 'icon.png'),
     webPreferences: {
       contextIsolation: true,
@@ -866,12 +916,13 @@ function createWindow({ show = true } = {}) {
   });
   reportWindowState(win);
   watchUpdatedPage(win);
+  if (IS_MAC && glassSupported()) addGlass(win);
   win.loadURL('app://player/index.html');
   // With the tray icon on, closing only hides the window (it keeps following
   // your music). Otherwise closing the player closes everything: the mini
   // player and the hidden Apple Music window would keep the app running.
   win.on('close', (e) => {
-    if (!quitting && prefs?.get('tray')) { e.preventDefault(); win.hide(); }
+    if (!quitting && prefs?.get('tray')) { e.preventDefault(); if (IS_MAC && win.isFullScreen()) { win.once('leave-full-screen', () => win.hide()); win.setFullScreen(false); } else win.hide(); }
   });
   win.on('closed', () => {
     win = null;
@@ -899,7 +950,8 @@ if (!process.env.LP_SELFTEST && !app.requestSingleInstanceLock()) {
   app.on('second-instance', () => showMain());
   app.setAppUserModelId(APP_ID);
   app.whenReady().then(() => {
-    Menu.setApplicationMenu(null);
+    // Mac apps need the app menu (Cmd+Q, Cmd+C / V, Cmd+W…); Windows has none.
+    Menu.setApplicationMenu(IS_MAC ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null);
     prefs = new DesktopPrefs(path.join(app.getPath('userData'), 'desktop-prefs.json'));
     webUpdate = new WebUpdate({ bundledRoot: WEB_ROOT, dataDir: app.getPath('userData'), appVersion: app.getVersion(), log: (m) => console.log(m) });
     if (webUpdate.usingUpdate) console.log(`[web-update] using ${webUpdate.version()}`);
@@ -917,10 +969,13 @@ if (!process.env.LP_SELFTEST && !app.requestSingleInstanceLock()) {
     relaySystemMedia();
     relayWindowControls();
     relayAppPrefs();
+    relayGlass();
     windowLayout();
     updateTray();
     // Started with Windows "in the tray": no window until the tray icon is clicked.
     createWindow({ show: !(startedHidden && prefs.get('tray')) });
   });
   app.on('window-all-closed', () => app.quit());
+  // Mac: clicking the Dock icon brings the window back (from the tray too).
+  app.on('activate', () => { if (app.isReady()) showMain(); });
 }

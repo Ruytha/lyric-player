@@ -66,6 +66,11 @@
     .bar-handle .unlock-icon { display: none; }
     body.bar.unlocked .bar-handle .lock-icon { display: none; }
     body.bar.unlocked .bar-handle .unlock-icon { display: block; }
+
+    /* Mac: real Liquid Glass behind the window (?glass) instead of the CSS blur. */
+    body.native-glass .mini { inset: 0; background: transparent; backdrop-filter: none; box-shadow: none; }
+    body.native-glass .bg { display: none; }
+    body.native-glass.bar .barview { background: transparent; }
   </style>
 </head>
 <body>
