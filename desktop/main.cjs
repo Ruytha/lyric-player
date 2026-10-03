@@ -993,7 +993,7 @@ function createWindow({ show = true } = {}) {
 // a copy of the app that is already open.
 // Development copies can run beside the installed app with their own profile.
 if (process.env.LP_USERDATA) app.setPath('userData', process.env.LP_USERDATA);
-if (process.env.LP_SELFTEST) {
+if (process.env.LP_SELFTEST && !process.env.LP_USERDATA) {
   app.setPath('userData', path.join(require('node:os').tmpdir(), `lyric-player-selftest-${process.pid}`));
 }
 

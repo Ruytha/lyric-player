@@ -278,7 +278,7 @@ settings.subscribe((key, value, s) => {
   if (key === null || key === 'levelVolume') fx.setLevel(s.levelVolume);
   if (key === null || key === 'eqOn' || key === 'eqGains') { fx.setEq(s.eqOn, parseGains(s.eqGains)); updateEqRow?.(); }
   if (key === null || key === 'emojiWords') emoji.setCustomWords(s.emojiWords);
-  if (key === null || key === 'lyricFont' || key === 'lyricColor') applyLyricLook(s, { art: () => state.artUrl }).then(() => renderer.remeasure());
+  if (key === null || key === 'lyricFont' || key === 'lyricColor') applyLyricLook(s, { art: () => state.artUrl }).then(() => { if (key !== 'lyricColor') renderer.remeasure(); }); // a colour needs no re-layout
   if (key === null || key === 'smartShuffle') queue.smart = s.smartShuffle ? shuffleInfo : null;
   if (key === 'hotkeys' || key === 'remote') native?.appPrefs?.('set', { [key]: value }).then(() => refreshRemoteRow?.()).catch(() => {});
   if (key === null || key === 'emojiReactions') emoji.setEnabled(s.emojiReactions);

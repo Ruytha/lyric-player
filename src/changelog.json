@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.10.1",
+    "date": "2026-10-03",
+    "notes": [
+      "Fixed the lyrics blinking for a moment when the first emoji reaction appeared.",
+      "Changing the lyric colour no longer makes the lyrics blink."
+    ]
+  },
+  {
     "version": "2.10.0",
     "date": "2026-10-03",
     "notes": [

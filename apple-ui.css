@@ -109,6 +109,8 @@ html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none
 .emoji-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 40; }
 .emoji-float {
   position: absolute; bottom: -80px; font-size: var(--size, 40px); line-height: 1;
+  /* An emoji font of its own: a text font here would load extra pieces of it, and the lyrics re-measure. */
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
   animation: emoji-rise var(--dur, 3s) cubic-bezier(0.2, 0.6, 0.35, 1) both;
   will-change: transform, opacity;

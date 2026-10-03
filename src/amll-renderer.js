@@ -36,7 +36,13 @@ export class AmllLyricsRenderer {
 
     // A heavier/lighter weight or a web font finishing to load changes line
     // heights; let AMLL re-measure.
-    document.fonts?.addEventListener?.('loadingdone', () => this.remeasure());
+    // Only fonts the lyrics use: an emoji or interface font finishing to load
+    // would otherwise rebuild the lyrics (they blink for a moment).
+    document.fonts?.addEventListener?.('loadingdone', (e) => {
+      const used = getComputedStyle(this.panel).fontFamily.toLowerCase();
+      const faces = e.fontfaces || [];
+      if (!faces.length || faces.some((f) => used.includes(String(f.family).replace(/["']/g, '').toLowerCase()))) this.remeasure();
+    });
 
     this.player.addEventListener('line-click', (evt) => {
       const line = evt.line?.getLine?.();
