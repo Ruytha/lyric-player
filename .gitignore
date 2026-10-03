@@ -17,3 +17,6 @@ lyric-player-source/
 # iPhone app: dependencies and the generated copy of the player
 ios-app/node_modules/
 ios-app/www/
+
+# Videos with copyrighted music: private, never committed or deployed
+private-videos/
