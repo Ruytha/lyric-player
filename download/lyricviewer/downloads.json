@@ -1,15 +1,15 @@
 {
-  "version": "2.4.1",
+  "version": "2.11.0",
   "windows": {
     "installer": {
-      "url": "https://www.mediafire.com/file/m0ty7pvejt09l7l/Lyric-Player-Setup-2.3.0.exe/file",
+      "url": "https://www.mediafire.com/file/ui3c5u1wibik9l1/Lyric-Player-Setup-2.10.0.exe/file",
       "size": "107 MB",
-      "file": "Lyric-Player-Setup-2.3.0.exe"
+      "file": "Lyric-Player-Setup-2.10.0.exe"
     },
     "portable": {
-      "url": "https://www.mediafire.com/file/flu0oirxsiv509j/Lyric-Player-2.3.0-portable.exe/file",
+      "url": "https://www.mediafire.com/file/97a8snrr4d0szg5/Lyric-Player-2.10.0-portable.exe/file",
       "size": "107 MB",
-      "file": "Lyric-Player-2.3.0-portable.exe"
+      "file": "Lyric-Player-2.10.0-portable.exe"
     }
   },
   "mac": {
