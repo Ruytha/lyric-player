@@ -85,7 +85,7 @@ export class PlayerUI {
 
   setTranslation(available, on) {
     this.el.transItem.hidden = !available;
-    this.el.transItem.textContent = on ? 'Hide translation' : 'Show translation';
+    this.el.transItem.querySelector('.mi-label').textContent = on ? 'Hide translation' : 'Show translation';
   }
 
   // -------------------------------------------------------------------------
@@ -164,6 +164,13 @@ export class PlayerUI {
       for (const other of document.querySelectorAll('.menu')) other.hidden = true;
       pop.hidden = !open;
       btn.setAttribute('aria-expanded', String(open));
+      // The main menu scrolls inside the room it has above or below its button.
+      if (open && pop.classList.contains('main-menu')) {
+        pop.style.maxHeight = '';
+        const b = btn.getBoundingClientRect(), r = pop.getBoundingClientRect();
+        const room = r.top < b.top ? b.top - 16 : innerHeight - b.bottom - 16;
+        if (pop.offsetHeight > room) pop.style.maxHeight = `${Math.max(200, room)}px`;
+      }
     });
     pop.addEventListener('click', (e) => {
       e.stopPropagation();

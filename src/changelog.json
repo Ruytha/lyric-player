@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.8.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Redesigned ••• menu: big buttons on top for Share, Mini player, Floating lyrics and Full screen, grouped items with icons, and What’s new and Credits at the bottom.",
+      "The menu shows where the current lyrics came from, and fits the window (it scrolls when the window is small).",
+      "Tap the lyric offset value to reset it."
+    ]
+  },
+  {
     "version": "2.7.0",
     "date": "2026-10-03",
     "notes": [

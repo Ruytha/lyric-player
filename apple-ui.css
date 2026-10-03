@@ -122,3 +122,67 @@ html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none
 @media (prefers-reduced-motion: reduce) {
   @keyframes emoji-rise { 0%, 100% { opacity: 0; transform: translateY(-20vh); } 30%, 70% { opacity: 1; transform: translateY(-22vh); } }
 }
+
+/* ••• menu: iOS-style context menu. Quick tiles on top, grouped rows with
+   icons on the right, compact links at the bottom. */
+#menu.main-menu {
+  width: 290px; min-width: 0; padding: 8px;
+  border-radius: 22px;
+  max-height: min(640px, calc(100dvh - 140px));
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+  font-size: 15px;
+}
+#menu.main-menu::-webkit-scrollbar { display: none; }
+.am-mode .meta #menu.main-menu { max-height: min(640px, calc(100dvh - var(--p) * 300)); }
+
+#menu .mi-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-bottom: 8px; }
+#menu .mi-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 66px; padding: 10px 4px 8px; border: 0; border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08); color: inherit;
+  font-size: 11.5px; font-weight: 600; line-height: 1.15; text-align: center;
+  transition: background .15s, transform .15s var(--spring, ease);
+}
+#menu .mi-tile:hover { background: rgba(255, 255, 255, 0.15); }
+#menu .mi-tile:active { transform: scale(0.94); }
+#menu .mi-tile .mi-icon { width: 24px; height: 24px; }
+#menu .mi-tile[aria-checked="true"] { background: rgba(255, 255, 255, 0.92); color: #15171d; }
+#menu .mi-tile[aria-checked="true"] .mi-icon rect[fill] { fill: #15171d; }
+.desktop #menu .mi-tile.desktop-only-item { display: flex !important; }
+
+#menu .mi-group { padding: 4px 0; border-radius: 14px; background: rgba(255, 255, 255, 0.045); }
+#menu .mi-group + .mi-group { margin-top: 8px; }
+#menu .mi-group > button, #menu .mi-group > .menu-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 42px; padding: 7px 14px; border: 0; border-radius: 10px;
+  background: none; color: inherit; text-align: left; font-weight: 500;
+}
+#menu .mi-group > button:hover { background: rgba(255, 255, 255, 0.09); }
+#menu .mi-group > button + button, #menu .mi-group > * + .menu-row { box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.08); }
+#menu .mi-group > button:hover + button { box-shadow: none; }
+#menu .mi-group > [hidden] { display: none !important; }
+#menu .mi-text { display: flex; flex-direction: column; min-width: 0; }
+#menu .mi-sub { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.5); margin-top: 1px; }
+#menu .mi-icon {
+  flex: none; width: 20px; height: 20px;
+  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.9;
+}
+#menu .mi-group .mi-icon { opacity: 0.75; }
+/* Apple Music Mode: a check over the icon when it's on. */
+#amModeItem[aria-checked="true"] .mi-label::after { content: '  ✓'; font-weight: 700; color: #fa586a; }
+#amModeItem[aria-checked="true"] .mi-icon { color: #fa586a; opacity: 1; }
+
+#menu .mi-offset .stepper { gap: 4px; }
+#menu .mi-offset .stepper > button:not(.offset-val) { width: 30px; height: 30px; font-size: 17px; }
+#menu .mi-offset .offset-val,
+html.glass #menu .mi-offset .offset-val {
+  width: auto; height: 30px; padding: 0 6px; border-radius: 8px;
+  background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+#menu .mi-offset .offset-val:hover { background: rgba(255, 255, 255, 0.08); }
+#menu .mi-offset output { min-width: 58px; font-size: 14px; }
+
+#menu .mi-foot { display: flex; justify-content: center; align-items: center; gap: 2px; padding: 10px 4px 4px; color: rgba(255, 255, 255, 0.35); font-size: 12.5px; }
+#menu .mi-foot button { border: 0; background: none; color: rgba(255, 255, 255, 0.6); font: inherit; font-weight: 600; padding: 4px 6px; border-radius: 6px; }
+#menu .mi-foot button:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }

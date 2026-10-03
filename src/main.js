@@ -743,7 +743,12 @@ const sourceLabel = (source) => OWN_SOURCES[source] || SOURCE_NAMES[source] || s
 function setLyricsSource(source) {
   state.lyricsSource = source;
   const item = document.querySelector('[data-action="find-lyrics"]');
-  if (item) item.textContent = source && !OWN_SOURCES[source] ? `Lyrics from ${sourceLabel(source)}. Wrong? Find others…` : 'Find lyrics online…';
+  if (!item) return;
+  const sub = item.querySelector('.mi-sub');
+  const online = source && !OWN_SOURCES[source];
+  item.querySelector('.mi-label').textContent = online ? 'Find other lyrics…' : 'Find lyrics online…';
+  sub.textContent = online ? `Now from ${sourceLabel(source)}` : '';
+  sub.hidden = !online;
 }
 
 // Romanization borrowed from NetEase / QQ Music for lines with kanji or
