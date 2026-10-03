@@ -19,6 +19,7 @@ export class SettingsPanel {
     this.custom = custom;
     this.desktop = document.documentElement.classList.contains('desktop');
     this.mac = document.documentElement.classList.contains('mac');
+    this.ios = document.documentElement.classList.contains('ios');
     this.controls = new Map();
     this.body = sheet.querySelector('.sheet-body');
     this.build();
@@ -54,10 +55,12 @@ export class SettingsPanel {
   build() {
     let group = null;
     for (const s of SCHEMA) {
-      if (s.desktop && !this.desktop) continue;
+      // Desktop-only rows; the iPhone app shows the ones marked ios.
+      if (s.desktop && !this.desktop && !(s.ios && this.ios)) continue;
       if (s.mac && !this.mac) continue;
+      if (s.ios === false && this.ios) continue;
       if (s.section) {
-        this.body.appendChild(h('h3', 'sheet-section', s.section));
+        this.body.appendChild(h('h3', 'sheet-section', (this.ios && s.iosSection) || s.section));
         group = h('div', 'sheet-group');
         this.body.appendChild(group);
         continue;
@@ -69,7 +72,7 @@ export class SettingsPanel {
         continue;
       }
       const id = `set-${s.key}`;
-      const label = h('label', 'set-label', s.label);
+      const label = h('label', 'set-label', (this.ios && s.iosLabel) || s.label);
       label.htmlFor = id;
       const head = h('div', 'set-head');
       head.appendChild(label);
@@ -118,7 +121,8 @@ export class SettingsPanel {
         row.appendChild(seg);
         this.controls.set(s.key, { s, buttons });
       }
-      if (s.hint) row.appendChild(h('div', 'set-hint', s.hint));
+      const hint = (this.ios && s.iosHint) || s.hint;
+      if (hint) row.appendChild(h('div', 'set-hint', hint));
       group.appendChild(row);
     }
   }

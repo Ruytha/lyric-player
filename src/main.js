@@ -206,7 +206,9 @@ const renderer = new AmllLyricsRenderer($('lyrics'), {
     if (!playback().playing) togglePlay();
   },
 });
-renderer.setLyrics(null, 'Play a song in Spotify or Apple Music, drop a song and its .ttml here, or open your library with ☰');
+renderer.setLyrics(null, document.documentElement.classList.contains('ios')
+  ? 'Play a song in the Music app, or add your own songs and lyrics with ••• → Load new song'
+  : 'Play a song in Spotify or Apple Music, drop a song and its .ttml here, or open your library with ☰');
 
 // ---------------------------------------------------------------------------
 // Settings (lyrics, background, Liquid Glass)
@@ -269,7 +271,8 @@ settings.subscribe((key, value, s) => {
 // desktop through it, instead of the cover background (Settings → Background).
 var glassWindowOk = false; // var: the settings subscription above runs first
 function applyGlassWindow() {
-  const on = glassWindowOk && !!settings?.get('macGlass');
+  // Strictly true/false: an undefined second argument would make toggle() flip the class.
+  const on = !!(glassWindowOk && settings?.get('macGlass'));
   document.documentElement.classList.toggle('glass-window', on);
 }
 native?.glass?.('supported').then((ok) => { glassWindowOk = !!ok; applyGlassWindow(); }).catch(() => {});

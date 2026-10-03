@@ -1,0 +1,17 @@
+{
+  "appId": "dev.ruytha.lyricplayer",
+  "appName": "Lyric Player",
+  "webDir": "www",
+  "backgroundColor": "#1e1e1e",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#1e1e1e",
+    "allowsLinkPreview": false,
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

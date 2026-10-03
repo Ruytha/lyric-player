@@ -8,3 +8,4 @@ scripts
 .gitignore
 node_modules
 lyric-player-source
+ios-app

@@ -13,3 +13,7 @@ desktop/dist*/
 
 # Source exports for building on another computer
 lyric-player-source/
+
+# iPhone app: dependencies and the generated copy of the player
+ios-app/node_modules/
+ios-app/www/

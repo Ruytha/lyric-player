@@ -44,8 +44,8 @@ export const SCHEMA = [
   { key: 'appleAccount', type: 'custom', desktop: true },
   { key: 'appleLyrics', label: 'Apple Music lyrics in Find lyrics', hint: 'Word-synced lyrics from your own Apple Music subscription, shown first in Find lyrics', type: 'toggle', def: true, desktop: true },
 
-  { section: 'On This PC', desktop: true },
-  { key: 'followPc', label: 'Follow music playing on this PC', hint: 'When Spotify, Apple Music, a browser or another app plays and Lyric Player doesn’t, show its song, cover and synced lyrics', type: 'toggle', def: true, desktop: true },
+  { section: 'On This PC', iosSection: 'Apple Music', desktop: true, ios: true },
+  { key: 'followPc', ios: true, iosLabel: 'Follow the Music app', iosHint: 'When the Music app plays and Lyric Player doesn’t, show its song, cover and synced lyrics. iOS doesn’t let apps see what Spotify or other apps play', label: 'Follow music playing on this PC', hint: 'When Spotify, Apple Music, a browser or another app plays and Lyric Player doesn’t, show its song, cover and synced lyrics', type: 'toggle', def: true, desktop: true },
 
   { section: 'App', desktop: true },
   { key: 'tray', label: 'Keep running in the tray', hint: 'Closing the window leaves Lyric Player running, with an icon by the clock (Windows) or in the menu bar (Mac), still following your music. Quit from its menu there', type: 'toggle', def: false, desktop: true },
@@ -87,6 +87,8 @@ export const DEFAULTS = Object.fromEntries(SCHEMA.filter((s) => s.key && s.type 
 export class Settings {
   constructor() {
     this.values = { ...DEFAULTS };
+    // The iPhone app starts in the iPhone lyrics layout (Apple Music Mode).
+    if (typeof document !== 'undefined' && document.documentElement.classList.contains('ios')) this.values.layout = 'apple';
     this.listeners = new Set();
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');

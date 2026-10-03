@@ -1,0 +1,11 @@
+{
+  "name": "lyric-native",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lyric Player's iOS side: what the Music app is playing, and its controls",
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  }
+}

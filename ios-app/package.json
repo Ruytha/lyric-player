@@ -1,0 +1,20 @@
+{
+  "name": "lyric-player-ios",
+  "version": "2.4.0",
+  "private": true,
+  "description": "Lyric Player for iPhone (Capacitor)",
+  "scripts": {
+    "web": "node scripts/copy-web.mjs",
+    "setup": "npm run web && npx cap add ios && node scripts/patch-ios.mjs && npx cap sync ios",
+    "sync": "npm run web && npx cap sync ios",
+    "open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "lyric-native": "file:./plugin"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

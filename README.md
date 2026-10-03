@@ -545,3 +545,36 @@ Mac, or the **Build desktop apps** GitHub Action, which makes the .dmg and
 `download/lyricviewer/` is served at `files.ruytha.dev/download/lyricviewer`.
 The links are in `download/lyricviewer/downloads.json` (empty = "coming
 soon"); the notes come from `src/changelog.json`.
+
+## iPhone app (ios-app/)
+
+The player wrapped as an iOS app with Capacitor, built in Xcode on a Mac:
+
+```
+cd ios-app
+npm install
+npm run sync      # copies the player into www/ and into the Xcode project
+npm run open      # opens it in Xcode
+```
+
+In Xcode: pick your iPhone, Signing & Capabilities → Team → your Apple ID,
+then Run. With a free Apple ID the app must be reinstalled from Xcode every
+7 days (Apple's rule); the Apple Developer Program removes that and allows
+TestFlight / the App Store.
+
+- `web/ios-native.js` gives the page the same `lyricPlayerNative` bridge the
+  desktop app has: NetEase, QQ Music and Apple Music album pages are fetched
+  with native networking (CapacitorHttp), and "music playing" comes from the
+  plugin below.
+- `plugin/` (LyricNative, Swift): what the **Music app** is playing
+  (`MPMusicPlayerController.systemMusicPlayer`), its cover and position, and
+  play / pause / skip / seek. iOS asks once for access to Apple Music. iOS
+  doesn't let apps see what Spotify or other apps play.
+- Your own songs (••• → Load new song, from Files) keep playing with the
+  screen locked (background audio).
+- Starts in the iPhone layout (Apple Music Mode). The glass is the CSS
+  Liquid Glass: Apple's native glass only applies to native views, and the
+  player is a web page.
+- `scripts/patch-ios.mjs` sets the icon, launch screen, version and the
+  Info.plist entries; it runs as part of `npm run setup` (only needed if the
+  `ios/` folder is ever deleted and made again with `npx cap add ios`).
