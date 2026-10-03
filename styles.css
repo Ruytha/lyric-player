@@ -1601,6 +1601,24 @@ html.am-mode.now-playing .now-bg {
   mask-image: linear-gradient(to bottom, #000 70%, transparent 94%);
   pointer-events: none;
 }
+/* Animated cover beside the lyrics (wide landscape window): the tall cover
+   fills the player's column; title and controls sit at its foot. */
+html.side-cover .now-bg {
+  display: block;
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 40%;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent 66%), linear-gradient(to right, #000 82%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to bottom, #000 40%, transparent 66%), linear-gradient(to right, #000 82%, transparent);
+  mask-composite: intersect;
+}
+html.side-cover .now-bg video { object-position: top; }
+html.side-cover .now-bg.motion-on ~ .player { align-items: flex-end; }
+html.side-cover .now-bg.motion-on ~ .player .art { display: none; }
+
 .now-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease; }
 .now-bg.motion-on video { opacity: 1; }
 

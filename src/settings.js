@@ -55,6 +55,7 @@ export const SCHEMA = [
   { section: 'Artwork' },
   { key: 'autoArt', label: 'Find covers automatically', hint: 'Looks up the song on Apple Music: animated cover, or the cover if the file has none', type: 'toggle', def: true },
   { key: 'motionArt', label: 'Animated covers', hint: 'Play moving covers when an album has one', type: 'toggle', def: true },
+  { key: 'sideCover', label: 'Animated cover beside the lyrics', hint: 'In a wide window, the tall animated cover fills the left side, with the lyrics on the right', type: 'toggle', def: false },
 
   { section: 'Apple Music', desktop: true },
   { key: 'appleAccount', type: 'custom', desktop: true },

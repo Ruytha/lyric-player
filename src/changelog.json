@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.11.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Animated cover beside the lyrics: in a wide window, the album’s tall animated cover fills the left side with the title and controls at its foot, and the lyrics stay on the right, like Apple Music on iPad (Settings → Animated cover beside the lyrics)."
+    ]
+  },
+  {
     "version": "2.10.4",
     "date": "2026-10-03",
     "notes": [

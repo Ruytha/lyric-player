@@ -274,6 +274,7 @@ settings.subscribe((key, value, s) => {
   renderer.apply(am ? { ...s, alignAnchor: 'top', alignPosition: Math.min(s.alignPosition, 0.35) * 0.3 } : s);
   if (key === null || key === 'layout') applyLayout(am);
   if (key === 'motionArt') applyCover();
+  if (key === 'sideCover') applyNowPlaying();
   if (key === null || key === 'karaoke') { fx.setKaraoke(s.karaoke); $('karaokeItem')?.setAttribute('aria-checked', String(!!s.karaoke)); }
   if (key === null || key === 'levelVolume') fx.setLevel(s.levelVolume);
   if (key === null || key === 'eqOn' || key === 'eqGains') { fx.setEq(s.eqOn, parseGains(s.eqGains)); updateEqRow?.(); }
@@ -390,12 +391,25 @@ var tallMotion = new MotionArtwork($('nowBg')); // var: applyNowPlaying can run 
 
 // Apple Music Mode with the lyrics hidden is the iPhone's Now Playing screen:
 // big cover (or the tall animated cover, full-bleed), title, controls.
+// "Animated cover beside the lyrics": in a wide landscape window the tall
+// animated cover fills the player's side, with the lyrics on the other.
+var sideQuery; // var: applyNowPlaying can run (from settings) before this line
+function sideCoverWanted() {
+  if (!sideQuery) {
+    sideQuery = matchMedia('(min-width: 901px) and (orientation: landscape)');
+    let wide = sideQuery.matches;
+    addEventListener('resize', () => { if (sideQuery.matches !== wide) { wide = sideQuery.matches; applyNowPlaying(); } });
+  }
+  return !!settings.get('sideCover') && !state.lyricsHidden && sideQuery.matches;
+}
 function applyNowPlaying() {
   const np = document.documentElement.classList.contains('am-mode') && state.lyricsHidden;
   document.documentElement.classList.toggle('now-playing', np);
   const c = state.cover;
-  const tall = np && settings.get('motionArt') && c && !c.off && c.tall ? c.tall : null;
-  tallMotion?.play(tall).catch(() => {});
+  const tall = settings.get('motionArt') && c && !c.off && c.tall ? c.tall : null;
+  const side = !np && !!tall && sideCoverWanted();
+  document.documentElement.classList.toggle('side-cover', side);
+  tallMotion?.play(np || side ? tall : null).catch(() => {});
   if (np) showControls();
 }
 

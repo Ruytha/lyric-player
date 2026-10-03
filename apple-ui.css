@@ -76,6 +76,7 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
    through; the cover background steps aside. */
 html.glass-window, html.glass-window body { background: transparent; }
 html.glass-window .bg, html.glass-window .now-bg { display: none; }
+html.glass-window.side-cover .now-bg { display: block; } /* the cover itself, not a background */
 html.glass-window .lyrics { text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25); }
 
 /* iPhone app: keep clear of the Dynamic Island / notch and the home bar. */
