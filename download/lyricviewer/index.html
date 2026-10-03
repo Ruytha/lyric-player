@@ -64,7 +64,7 @@
     .meta { margin-top: 14px; font-size: 13px; color: var(--faint); }
 
     .shot { margin: 56px auto 0; max-width: 1000px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08); background: #111; }
-    .shot img { display: block; width: 100%; height: auto; }
+    .shot img, .shot video { display: block; width: 100%; height: auto; }
 
     section { padding: 72px 0 0; }
     h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.025em; margin: 0 0 10px; line-height: 1.1; }
@@ -146,7 +146,7 @@
       </div>
       <p class="meta" id="metaLine">Version 2.3.0 · Free</p>
     </div>
-    <div class="shot" id="shot"><img src="screenshot.png" width="1440" height="900" alt="Lyric Player showing synced lyrics over a moving background"></div>
+    <div class="shot" id="shot"><video src="promo.mp4" poster="promo-poster.jpg" width="1920" height="1080" autoplay muted loop playsinline preload="metadata" aria-label="Lyric Player: lyrics lighting up word by word, then its features"></video></div>
 
     <section id="download">
       <h2>Download</h2>
@@ -272,6 +272,10 @@
       }
     }
 
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const v = document.querySelector('#shot video');
+      v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+    }
     setup();
     changes();
   </script>
