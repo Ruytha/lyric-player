@@ -11,6 +11,14 @@
   },
   "rewrites": [
     {
+      "source": "/update/lyricviewer/cover/:sf/:id.gif",
+      "destination": "/api/cover-gif?id=:id&sf=:sf"
+    },
+    {
+      "source": "/cover/:sf/:id.gif",
+      "destination": "/api/cover-gif?id=:id&sf=:sf"
+    },
+    {
       "source": "/update/lyricviewer/package.json",
       "destination": "/api/app-update?file=package.json"
     },

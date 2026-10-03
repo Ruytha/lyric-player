@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.10.3",
+    "date": "2026-10-03",
+    "notes": [
+      "Animated covers now move on your Discord profile, not just the first frame."
+    ]
+  },
+  {
     "version": "2.10.2",
     "date": "2026-10-03",
     "notes": [

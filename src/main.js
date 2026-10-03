@@ -568,7 +568,8 @@ async function sendPresence() {
     // The update site also turns animated covers into GIFs for Discord.
     const site = (s.site || UPDATE_SITE).trim().replace(/\/+$/, '');
     if (s.discordCover === 'animated' && c?.square && !c.off && /^https:\/\/[^\s/]+/.test(site)) {
-      animated = `${site}/api/cover-gif?id=${c.collectionId}&sf=us`;
+      // A plain .gif link: Discord shows a link with a query string as a still image.
+      animated = `${site}/cover/us/${c.collectionId}.gif`;
     }
   }
   try {
