@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spicyToTtml, readCredit, isExpired, mayExport, SPICY_MAX_AGE } from '../src/spicy-lyrics.js';
 import { parseTTML } from '../src/ttml-parser.js';
-import handler, { pickTrack, fromDeezer, spotifyIdFromSongPort } from '../api/spicy-lyrics.js';
+import handler, { pickTrack } from '../api/spicy-lyrics.js';
 
 // The shape Spicy Lyrics answers with (developers.spicylyrics.org, and the
 // types in its open-source extension). Times are in seconds.
@@ -125,29 +125,6 @@ test('website endpoint: Spotify search → Spicy Lyrics, keys stay on the server
   assert.equal(seen.find((s) => s.u.includes('spicylyrics')).auth, 'Bearer sl_sk_test');
   assert.equal(seen.find((s) => s.u.includes('api.spotify.com')).auth, 'Bearer tok');
   assert.ok(!JSON.stringify(res.body).includes('sl_sk_test'), 'the key never goes to the app');
-});
-
-test('SongPort answers: the Spotify ID, but not a search page', () => {
-  assert.equal(spotifyIdFromSongPort({ platforms: { spotify: { url: 'https://open.spotify.com/track/463CkQjx2Zk1yXoBuierM9?si=x' } } }), '463CkQjx2Zk1yXoBuierM9');
-  assert.equal(spotifyIdFromSongPort({ platforms: { spotify: { url: 'https://open.spotify.com/search/levitating', isSearchFallback: true } } }), null);
-  assert.equal(spotifyIdFromSongPort({ platforms: {} }), null);
-  const d = fromDeezer([{ id: 1, title: 'Levitating', artist: { name: 'Dua Lipa' }, duration: 203, link: 'https://www.deezer.com/track/1' }]);
-  assert.equal(pickTrack(d, { title: 'Levitating', artist: 'Dua Lipa', duration: 203 }).link, 'https://www.deezer.com/track/1');
-});
-
-test('website endpoint: Deezer → SongPort → Spicy Lyrics', async () => {
-  const { res, seen } = await call('/api/spicy-lyrics?title=Levitating&artist=Dua%20Lipa&duration=203', {
-    env: { SPICY_LYRICS_KEY: 'sl_sk_test', SONGPORT_API_KEY: 'sp_live_test' },
-    fetches: {
-      'api.deezer.com/search': [200, { data: [{ id: 1124841682, title: 'Levitating', artist: { name: 'Dua Lipa' }, album: { title: 'Future Nostalgia' }, duration: 203, link: 'https://www.deezer.com/track/1124841682' }] }],
-      'api.songport.link/v1/convert': [200, { isrc: 'GBAHT1901299', platforms: { spotify: { url: 'https://open.spotify.com/track/463CkQjx2Zk1yXoBuierM9' } } }],
-      'api.spicylyrics.org/v1/lyrics/463CkQjx2Zk1yXoBuierM9': [200, syllableAnswer],
-    },
-  });
-  assert.equal(res.body.found, true);
-  assert.equal(res.body.album, 'Future Nostalgia');
-  assert.equal(seen.find((s) => s.u.includes('songport')).auth, 'Bearer sp_live_test');
-  assert.ok(!seen.some((s) => s.u.includes('api.spotify.com')), 'Spotify not needed');
 });
 
 test('website endpoint: other sites, no key, not found', async () => {

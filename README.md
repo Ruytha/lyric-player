@@ -584,20 +584,17 @@ TestFlight / the App Store.
 Lyrics from [Spicy Lyrics](https://developers.spicylyrics.org) (community
 syllable syncs, or Apple Music / Spotify syncs), searched with Apple Music
 first. Its API key must stay on a server, and it finds songs by Spotify track
-ID, so the app asks the website: `api/spicy-lyrics.js` finds the song's
-Spotify ID (see below), asks Spicy Lyrics with the key and sends back TTML (`src/spicy-lyrics.js` converts it). It answers only
+ID, so the app asks the website: `api/spicy-lyrics.js` finds the song with
+Spotify's search (an app token, no user sign-in), asks Spicy Lyrics with the
+key and sends back TTML (`src/spicy-lyrics.js` converts it). It answers only
 Lyric Player's own pages (the site, `app://player`, `capacitor://localhost`).
 
-To turn it on, add these variables to the Vercel project (Settings →
+To turn it on, add three variables to the Vercel project (Settings →
 Environment Variables, Production) and redeploy:
 
 - `SPICY_LYRICS_KEY`: the secret key of an application at developers.spicylyrics.org;
-- to find each song's Spotify ID, either `SONGPORT_API_KEY` (an invite-only
-  key from songport.link; the song is found on Deezer, which needs no key,
-  and SongPort gives its Spotify link), or `SPOTIFY_CLIENT_ID` and
-  `SPOTIFY_CLIENT_SECRET` from an app at developer.spotify.com/dashboard (since
-  February 2026 these only work when the app's owner has Spotify Premium).
-  SongPort is used when both are set.
+- `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`: from an app at
+  developer.spotify.com/dashboard (any name; it only uses search).
 
 Following Spicy Lyrics' terms, the app shows "Lyrics from Spicy Lyrics" (and,
 for community syncs, the uploader and maker, linked) wherever those lyrics are

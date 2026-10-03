@@ -2,14 +2,10 @@
 //
 // The Spicy Lyrics API needs a secret key that must stay on a server
 // (env SPICY_LYRICS_KEY, from developers.spicylyrics.org). It looks songs up
-// by Spotify track ID, found one of two ways:
-//  - SongPort (env SONGPORT_API_KEY, invite-only key from songport.link):
-//    the song is found on Deezer (free, no key) and SongPort gives the same
-//    song's Spotify link;
-//  - Spotify's own search (env SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET; since
-//    February 2026 only for apps whose owner has Spotify Premium).
-// The answer goes back as TTML with Spicy Lyrics' credit inside, only to
-// Lyric Player itself.
+// by Spotify track ID, so the song is first found with Spotify's search
+// (env SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET, a free app from
+// developer.spotify.com; client credentials, no user sign-in). The answer goes
+// back as TTML with Spicy Lyrics' credit inside, only to Lyric Player itself.
 //
 //   GET /api/spicy-lyrics?title=&artist=&duration=   (or ?q=…, or ?spotifyId=…)
 //   → { found, spotifyId, title, artists, album, duration, type, ttml }
@@ -51,44 +47,11 @@ export function pickTrack(results, { title = '', artist = '', duration = 0, q = 
   return best;
 }
 
-/** Deezer tracks in the shape pickTrack() reads. */
-export const fromDeezer = (items = []) => items.map((d) => ({
-  id: String(d.id), name: d.title, artists: [{ name: d.artist?.name || '' }], album: { name: d.album?.title || '' },
-  duration_ms: (d.duration || 0) * 1000, link: d.link, isrc: d.isrc,
-}));
-
-/** Spotify track ID out of a SongPort answer (null when it's only a search page). */
-export function spotifyIdFromSongPort(body) {
-  const sp = body?.platforms?.spotify || body?.links?.spotify || null;
-  const url = typeof sp === 'string' ? sp : sp?.url || '';
-  const fallback = (sp && typeof sp === 'object' && sp.isSearchFallback) || body?.isSearchFallback === true;
-  const m = /open\.spotify\.com\/(?:intl-[a-z-]+\/)?track\/([A-Za-z0-9]{22})/.exec(url);
-  return m && !fallback ? m[1] : null;
-}
-
-/** The song via Deezer + SongPort: { spotifyId, song } or { busy } or null. */
-async function viaSongPort({ title, artist, duration, q }) {
-  const term = title ? `${title} ${artist}`.trim() : q;
-  const dz = await getJson(`https://api.deezer.com/search?${new URLSearchParams({ q: term, limit: '10' })}`);
-  const hit = pickTrack(fromDeezer(dz.body?.data || []), { title, artist, duration, q });
-  if (!hit) return null;
-  const sp = await getJson('https://api.songport.link/v1/convert', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${process.env.SONGPORT_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: hit.link, platforms: ['spotify'] }),
-  });
-  if (sp.status === 429) return { busy: 'SongPort' };
-  if (sp.status === 401 || sp.status === 403) throw Object.assign(new Error('SongPort refused the key'), { status: 502 });
-  const spotifyId = spotifyIdFromSongPort(sp.body);
-  if (!spotifyId) return null;
-  return { spotifyId, song: { title: hit.name, artists: hit.artists.map((a) => a.name), album: hit.album.name, duration: hit.duration_ms / 1000 } };
-}
-
 // Spotify app token (client credentials), reused until it expires.
 let spotifyToken = null;
 async function spotify(path) {
   const id = process.env.SPOTIFY_CLIENT_ID, secret = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!id || !secret) throw Object.assign(new Error('Finding songs isn’t set up on this website (SONGPORT_API_KEY, or SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)'), { status: 501 });
+  if (!id || !secret) throw Object.assign(new Error('Spotify search isn’t set up on this website (SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET)'), { status: 501 });
   if (!spotifyToken || spotifyToken.until < Date.now() + 30000) {
     const r = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -132,15 +95,8 @@ export default async function handler(req, res) {
 
   try {
     let song = { title, artists: artist ? [artist] : [], album: '', duration };
-    if (!spotifyId && process.env.SONGPORT_API_KEY) {
-      // 1a. Deezer + SongPort
-      const r = await viaSongPort({ title, artist, duration, q });
-      if (r?.busy) { res.status(503).json({ error: `${r.busy} is busy; try again later` }); return; }
-      if (!r) { res.setHeader('cache-control', 'public, s-maxage=3600'); res.status(200).json({ found: false, reason: 'song not found on Deezer / Spotify' }); return; }
-      ({ spotifyId, song } = r);
-    }
     if (!spotifyId) {
-      // 1b. The song on Spotify (field search first, then plain words)
+      // 1. The song on Spotify (field search first, then plain words)
       const clean = (s) => s.replace(/["()[\]]/g, ' ').replace(/\s+/g, ' ').trim();
       const tries = title ? [`track:${clean(title)}${artist ? ` artist:${clean(artist)}` : ''}`, `${clean(title)} ${clean(artist)}`] : [q];
       let hit = null, busy = false;
