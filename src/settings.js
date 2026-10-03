@@ -23,6 +23,7 @@ export const SCHEMA = [
   { key: 'autoLyrics', label: 'Find lyrics automatically', hint: 'When a song has no lyrics, search every source and use the best match', type: 'toggle', def: true },
   { key: 'translation', label: 'Translation', type: 'toggle', def: false },
   { key: 'romanization', label: 'Romanization', type: 'toggle', def: true },
+  { key: 'autoRoman', label: 'Romanize when missing', hint: 'Korean and Japanese kana are romanized here; lines with kanji or Chinese characters borrow NetEase or QQ Music’s romanization for the same song', type: 'toggle', def: true },
 
   { section: 'Background' },
   { key: 'bgStyle', label: 'Style', hint: 'Lyricify: the Apple Music (iOS) background ported from Lyricify Backgrounds by WXRIW', type: 'choice', def: 'lyricify', options: [['lyricify', 'Lyricify'], ['amll', 'AMLL mesh'], ['artwork', 'Blurred']] },
@@ -44,6 +45,11 @@ export const SCHEMA = [
 
   { section: 'On This PC', desktop: true },
   { key: 'followPc', label: 'Follow music playing on this PC', hint: 'When Spotify, Apple Music, a browser or another app plays and Lyric Player doesn’t, show its song, cover and synced lyrics', type: 'toggle', def: true, desktop: true },
+
+  { section: 'App', desktop: true },
+  { key: 'tray', label: 'Keep running in the tray', hint: 'Closing the window leaves Lyric Player in the notification area (by the clock), still following your music. Quit from its menu there', type: 'toggle', def: false, desktop: true },
+  { key: 'startup', label: 'Start with Windows', type: 'toggle', def: false, desktop: true },
+  { key: 'startHidden', label: 'Start in the tray', hint: 'When it starts with Windows, wait in the tray instead of opening the window', type: 'toggle', def: true, desktop: true },
 
   { section: 'Discord', desktop: true },
   { key: 'discord', label: 'Discord Rich Presence', hint: 'Shows what you are playing on your Discord profile (the Discord app must be open)', type: 'toggle', def: false, desktop: true },

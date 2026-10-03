@@ -1,7 +1,7 @@
 {
   "name": "lyric-player-desktop",
   "productName": "Lyric Player",
-  "version": "2.2.1",
+  "version": "2.3.0",
   "description": "Apple Music-style TTML lyric player",
   "author": {
     "name": "Ruytha"
@@ -31,6 +31,7 @@
       "system-media.cjs",
       "system-media.ps1",
       "web-update.cjs",
+      "desktop-prefs.cjs",
       "build/icon.png"
     ],
     "extraResources": [

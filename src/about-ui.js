@@ -20,6 +20,7 @@ export function buildAboutRow(row, { settings, toast }) {
   row.innerHTML = `
     <div class="set-head"><span class="set-label">Lyric Player <span class="about-version"></span></span><span class="acct-state">Made by Ruytha</span></div>
     ${n?.update ? '<div class="about-update"><span class="update-state">Updates</span><button type="button" class="pill pill-small pill-ghost" data-update>Check for updates</button></div>' : ''}
+    ${n?.update ? '<div class="about-update" data-back-row hidden><span class="update-state">Something wrong since the update?</span><button type="button" class="pill pill-small pill-ghost" data-back>Go back</button></div>' : ''}
     <div class="acct-buttons">
       <button type="button" class="pill pill-small" data-check>Check sources</button>
       <button type="button" class="pill pill-small pill-ghost" data-copy>Copy diagnostics</button>
@@ -54,6 +55,21 @@ export function buildAboutRow(row, { settings, toast }) {
     });
     n.update('status').then(showUpdate).catch(() => {});
     btn.addEventListener('click', () => n.update(btn.dataset.next || 'check', { site: updateSite(settings) }).then(showUpdate).catch((e) => showUpdate({ state: 'error', message: unwrap(e) })));
+  }
+
+  // Go back to the version before the update in use.
+  const backRow = row.querySelector('[data-back-row]');
+  const showBack = () => n?.update?.('versions').then((v) => {
+    backRow.hidden = !v?.previous;
+    if (v?.previous) backRow.querySelector('[data-back]').textContent = `Go back to ${v.previous}`;
+  }).catch(() => {});
+  if (backRow) {
+    showBack();
+    backRow.querySelector('[data-back]').addEventListener('click', async () => {
+      const v = await n.update('versions').catch(() => null);
+      if (!v?.previous || !confirm(`Go back to version ${v.previous}? Version ${v.current} won't be downloaded again; the next newer version will be.`)) return;
+      try { await n.update('rollback'); } catch (e) { toast(`Couldn’t go back: ${unwrap(e)}`, { error: true }); }
+    });
   }
 
   // Sources

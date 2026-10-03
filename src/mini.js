@@ -1,8 +1,21 @@
 // Mini player window (desktop app). The main window sends the state; this
 // window only draws it and sends button presses back.
+//
+// mini.html?bar is the floating lyrics bar: only the line being sung, over
+// other windows. Locked, clicks pass through it (the app ignores the mouse
+// except over the handle that appears on hover); unlocked, it can be moved
+// and resized.
 
 const native = window.lyricPlayerNative;
 const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+const BAR = params.has('bar');
+if (BAR) {
+  document.body.classList.add('bar');
+  // The bar uses its own line elements; the rest of this file draws into them.
+  $('line').id = 'miniLine'; $('next').id = 'miniNext';
+  $('barLine').id = 'line'; $('barNext').id = 'next';
+}
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 let state = null;      // last state from the main window
@@ -50,3 +63,46 @@ function frame() {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+// ---------------------------------------------------------------------------
+// Floating lyrics bar
+
+if (BAR) {
+  let locked = params.get('locked') !== '0';
+  let size = Number(params.get('size')) || 34;
+  let overHandle = false;
+  let hoverTimer = 0;
+  const applySize = () => document.body.style.setProperty('--bar-size', `${size}px`);
+  const setLocked = (on) => {
+    locked = on;
+    document.body.classList.toggle('unlocked', !on);
+    native?.mini('bar', { locked: on, size });
+    if (on) { overHandle = false; native?.mini('bar', { ignore: true }); }
+  };
+  applySize();
+  document.body.classList.toggle('unlocked', !locked);
+  // Locked: the window still gets mouse moves (forwarded), so the handle can
+  // show, and the mouse is caught only while it's over the handle.
+  addEventListener('mousemove', (e) => {
+    document.body.classList.add('hover');
+    clearTimeout(hoverTimer);
+    hoverTimer = setTimeout(() => document.body.classList.remove('hover'), 1600);
+    if (!locked) return;
+    const over = !!e.target.closest?.('#barHandle');
+    if (over !== overHandle) { overHandle = over; native?.mini('bar', { ignore: !over }); }
+  });
+  document.addEventListener('mouseleave', () => {
+    document.body.classList.remove('hover');
+    if (locked && overHandle) { overHandle = false; native?.mini('bar', { ignore: true }); }
+  });
+  for (const b of document.querySelectorAll('[data-bar]')) {
+    b.addEventListener('click', () => {
+      if (b.dataset.bar === 'lock') setLocked(!locked);
+      else {
+        size = Math.min(72, Math.max(18, size + (b.dataset.bar === 'bigger' ? 4 : -4)));
+        applySize();
+        native?.mini('bar', { size });
+      }
+    });
+  }
+}

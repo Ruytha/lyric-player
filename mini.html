@@ -38,6 +38,34 @@
     .controls button:hover { background: rgba(255, 255, 255, 0.26); }
     .controls svg { width: 14px; height: 14px; fill: currentColor; }
     .progress { position: absolute; left: 0; bottom: 0; height: 3px; background: rgba(255, 255, 255, 0.55); width: 0; }
+
+    /* Floating lyrics (?bar): only the line, over everything. Clicks pass
+       through unless it's unlocked; the handle appears on hover. */
+    .barview { display: none; }
+    body.bar .mini { display: none; }
+    body.bar .barview {
+      position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 26px 24px 10px; text-align: center; border-radius: 18px; transition: background .2s, box-shadow .2s;
+    }
+    body.bar.unlocked .barview { background: rgba(20, 22, 28, 0.45); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); -webkit-app-region: drag; }
+    .barview .line {
+      font-size: var(--bar-size, 34px); line-height: 1.18; -webkit-line-clamp: 2; max-width: 100%;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 10px rgba(0, 0, 0, 0.55));
+    }
+    .barview .line .w { color: rgba(255, 255, 255, 0.55); }
+    .barview .next { font-size: calc(var(--bar-size, 34px) * 0.5); color: rgba(255, 255, 255, 0.72); max-width: 100%; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 8px rgba(0, 0, 0, 0.6)); }
+    .bar-handle {
+      position: absolute; top: 2px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; padding: 3px;
+      border-radius: 99px; background: rgba(20, 22, 28, 0.78); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      opacity: 0; transition: opacity .2s; -webkit-app-region: no-drag;
+    }
+    body.bar.hover .bar-handle, body.bar.unlocked .bar-handle { opacity: 1; }
+    .bar-handle button { width: 26px; height: 26px; border: 0; border-radius: 50%; display: grid; place-items: center; background: transparent; color: #fff; cursor: pointer; padding: 0; }
+    .bar-handle button:hover { background: rgba(255, 255, 255, 0.18); }
+    .bar-handle svg { width: 14px; height: 14px; fill: currentColor; }
+    .bar-handle .unlock-icon { display: none; }
+    body.bar.unlocked .bar-handle .lock-icon { display: none; }
+    body.bar.unlocked .bar-handle .unlock-icon { display: block; }
   </style>
 </head>
 <body>
@@ -57,6 +85,20 @@
       <button data-cmd="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4L12 13.4 6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg></button>
     </div>
     <div class="progress" id="progress"></div>
+  </div>
+  <div class="barview">
+    <div class="bar-handle" id="barHandle">
+      <button data-bar="lock" aria-label="Unlock to move or resize (locked: clicks pass through)" title="Unlock to move or resize">
+        <svg class="lock-icon" viewBox="0 0 24 24"><path d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 6 10zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>
+        <svg class="unlock-icon" viewBox="0 0 24 24"><path d="M9 10h9a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 6 10h1V7.5a5 5 0 0 1 9.6-2l-1.8.9A3 3 0 0 0 9 7.5z"/></svg>
+      </button>
+      <button data-bar="smaller" aria-label="Smaller text" title="Smaller text"><svg viewBox="0 0 24 24"><path d="M5 11h14v2H5z"/></svg></button>
+      <button data-bar="bigger" aria-label="Bigger text" title="Bigger text"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg></button>
+      <button data-cmd="focus" aria-label="Open the player" title="Open the player"><svg viewBox="0 0 24 24"><path d="M5 5h6v2H7v10h10v-4h2v6H5zM13 5h6v6h-2V8.4l-6.3 6.3-1.4-1.4L15.6 7H13z"/></svg></button>
+      <button data-cmd="close-bar" aria-label="Close floating lyrics" title="Close"><svg viewBox="0 0 24 24"><path d="M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12l5.6 5.6-1.4 1.4L12 13.4 6.4 19 5 17.6l5.6-5.6L5 6.4z"/></svg></button>
+    </div>
+    <div class="line" id="barLine"></div>
+    <div class="next" id="barNext"></div>
   </div>
   <script type="module" src="src/mini.js"></script>
 </body>

@@ -24,4 +24,5 @@ contextBridge.exposeInMainWorld('lyricPlayerNative', {
   onSystemMedia: (fn) => ipcRenderer.on('system-media', (_e, s) => fn(s)),
   windowControl: (kind) => ipcRenderer.invoke('window', kind),
   onWindowState: (fn) => ipcRenderer.on('window-state', (_e, s) => fn(s)),
+  appPrefs: (kind, params) => ipcRenderer.invoke('app-prefs', kind, params),
 });

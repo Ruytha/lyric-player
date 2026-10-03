@@ -105,3 +105,33 @@ test('Lyricify mesh: subdivided grids like the original (6→21, 9→33 points a
   assert.deepEqual([...p.data.slice(0, 2)], [-1, -1]);
   assert.deepEqual([...l.data.slice(0, 2)].map((v) => Math.round(v * 1000) / 1000), [-1, -1]);
 });
+
+test('Go back: from an update to the one before it, then to the installed files; the one left is skipped', async () => {
+  const { dir, bundled, data } = await installed('2.2.0');
+  const v = (version, page) => ({ 'index.html': page, 'src/main.js': 'same', 'package.json': JSON.stringify({ version }) });
+  const manifest = (files, version, base) => ({ version, minApp: '2.2.0', base, files: Object.fromEntries(Object.entries(files).map(([p, c]) => [p, sha(c)])) });
+  const a = v('2.3.0', 'page 2.3'), b = v('2.4.0', 'page 2.4');
+  const s = await site({ ...a });
+  const s2 = await site({ ...b, 'api/app-update': JSON.stringify(manifest(b, '2.4.0', '')) });
+  try {
+    let u = new WebUpdate({ bundledRoot: bundled, dataDir: data, appVersion: '2.2.0' });
+    await u.download(manifest(a, '2.3.0', s.base));
+    u = new WebUpdate({ bundledRoot: bundled, dataDir: data, appVersion: '2.2.0' });
+    assert.equal(u.version(), '2.3.0');
+    assert.equal(u.previousVersion(), '2.2.0', 'only the installed files to go back to');
+    await u.download(manifest(b, '2.4.0', s2.base));
+    u.apply();
+    assert.equal(u.version(), '2.4.0');
+    assert.equal(u.previousVersion(), '2.3.0');
+    assert.equal(await u.rollback(), '2.3.0');
+    assert.equal(await readFile(path.join(u.root, 'index.html'), 'utf8'), 'page 2.3');
+    assert.equal((await u.check(s2.base)).state, 'none', '2.4.0 is skipped now');
+    assert.equal(await u.rollback(), '2.2.0');
+    assert.equal(u.root, bundled);
+    assert.equal(u.previousVersion(), null);
+  } finally {
+    s.close();
+    s2.close();
+    await rm(dir, { recursive: true, force: true });
+  }
+});

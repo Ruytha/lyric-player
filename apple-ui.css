@@ -59,3 +59,15 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
 
 /* The library slides in from the left: keep it clear of the window buttons. */
 .desktop .lib-sheet { top: 48px; }
+
+/* What's new (after an update; ••• → What's new) */
+.wn-panel { width: min(560px, 100%); max-height: min(640px, 88vh); padding: 6px 0 0; }
+.wn-panel .card-head { padding: 14px 20px 6px; }
+.wn-body { overflow-y: auto; padding: 0 22px 8px; scrollbar-width: thin; }
+.wn-body section + section { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.wn-body h3 { margin: 6px 0 6px; font-size: 15px; font-weight: 700; display: flex; gap: 10px; align-items: baseline; }
+.wn-body h3 span { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.45); }
+.wn-body ul { margin: 0; padding-left: 18px; display: grid; gap: 7px; }
+.wn-body li { font-size: 14px; line-height: 1.45; color: rgba(255, 255, 255, 0.82); }
+.wn-foot { justify-content: flex-end; padding: 10px 20px 16px; }
+.about-update[hidden] { display: none; }

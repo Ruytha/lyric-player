@@ -1,0 +1,32 @@
+[
+  {
+    "version": "2.3.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Floating lyrics: the line being sung, floating over your other windows and games. Clicks go straight through it; hover it for its buttons: unlock to drag it somewhere else, change the text size, or close it (••• → Floating lyrics, or K).",
+      "Tray icon and Start with Windows (Settings → App): close the window and Lyric Player keeps following your music from the notification area.",
+      "Romanization for lyrics that don't have one: Korean and Japanese kana are romanized in the app, and lines with kanji or Chinese characters borrow NetEase or QQ Music's romanization (Settings → Lyrics → Romanize when missing).",
+      "Lyric offset per app: lyrics too early or late with Spotify or Apple Music? Fix it once with [ and ] and every song from that app starts with the same offset.",
+      "The ••• menu says where the lyrics came from; if they're the wrong version, pick others from there (or press /).",
+      "Lyric cards can use the moving Lyricify background.",
+      "What's new (this window) after each update, and Settings → About → Go back to the previous version if an update misbehaves."
+    ]
+  },
+  {
+    "version": "2.2.1",
+    "date": "2026-10-03",
+    "notes": [
+      "Just the lyrics page: the full library window is gone; ☰ slides the library over the lyrics.",
+      "Updates now come straight from files.ruytha.dev, no reinstall."
+    ]
+  },
+  {
+    "version": "2.2.0",
+    "notes": [
+      "Follows music playing on this PC (Spotify, Apple Music, browsers…) with its cover and synced lyrics.",
+      "The Apple Music (iOS) background, ported from Lyricify Backgrounds.",
+      "BiniLyrics as a lyrics source.",
+      "macOS-style window buttons."
+    ]
+  }
+]

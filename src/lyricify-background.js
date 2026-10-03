@@ -460,6 +460,18 @@ export class LyricifyBackground {
     this.render();
   }
 
+  /** A still copy of the background as it looks now (for lyric cards), or null. */
+  snapshot() {
+    if (this.lost || !this.cur) return null;
+    // Drawn and copied in the same task, so the WebGL buffer is still there.
+    this.render();
+    const c = document.createElement('canvas');
+    c.width = this.canvas.width;
+    c.height = this.canvas.height;
+    c.getContext('2d').drawImage(this.canvas, 0, 0);
+    return c;
+  }
+
   // --------------------------------------------------------------- render
 
   render() {

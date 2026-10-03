@@ -49,7 +49,7 @@ function wrap(ctx, text, width) {
   });
 }
 
-/** Draws the card. data: { lines: [{text, translation}], title, artist, art (url), style, showTranslation } */
+/** Draws the card. data: { lines: [{text, translation}], title, artist, art (url), style ('dark' | 'light' | 'lyricify'), showTranslation, motionBg() → canvas } */
 export async function drawCard(canvas, data) {
   canvas.width = W;
   canvas.height = H;
@@ -60,14 +60,19 @@ export async function drawCard(canvas, data) {
   // Background: the cover, hugely blurred and darkened (like the player).
   ctx.fillStyle = '#2a2f3a';
   ctx.fillRect(0, 0, W, H);
-  if (img) {
+  // Lyricify: a frame of the player's own moving background.
+  const snap = data.style === 'lyricify' ? data.motionBg?.() : null;
+  if (snap) {
+    const k = Math.max(W / snap.width, H / snap.height);
+    ctx.drawImage(snap, (W - snap.width * k) / 2, (H - snap.height * k) / 2, snap.width * k, snap.height * k);
+  } else if (img) {
     ctx.save();
     ctx.filter = 'blur(90px) saturate(1.6)';
     const s = Math.max(W, H) * 1.5;
     ctx.drawImage(img, (W - s) / 2, (H - s) / 2, s, s);
     ctx.restore();
   }
-  ctx.fillStyle = data.style === 'light' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.32)';
+  ctx.fillStyle = data.style === 'light' ? 'rgba(255,255,255,0.18)' : snap ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.32)';
   ctx.fillRect(0, 0, W, H);
 
   // Header: cover, title, artist.

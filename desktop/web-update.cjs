@@ -36,6 +36,7 @@ class WebUpdate {
     this.bundledRoot = bundledRoot;
     this.dir = path.join(dataDir, 'web-update');
     this.current = path.join(this.dir, 'current');
+    this.previous = path.join(this.dir, 'previous');
     this.appVersion = appVersion;
     this.log = log;
     this.busy = null;
@@ -125,6 +126,11 @@ class WebUpdate {
       onProgress(Math.round((++done / entries.length) * 100));
     }
     await fsp.writeFile(path.join(staging, 'update.json'), JSON.stringify({ version: m.version, minApp: m.minApp || '0.0.0', from: m.base, at: Date.now() }));
+    // Keep the version being replaced, to go back to (Settings → About).
+    if (readJson(path.join(this.current, 'update.json')) && fs.existsSync(path.join(this.current, 'index.html'))) {
+      await fsp.rm(this.previous, { recursive: true, force: true });
+      await fsp.cp(this.current, this.previous, { recursive: true });
+    }
     // Swap in: current → old, staging → current.
     const old = path.join(this.dir, 'old');
     await fsp.rm(old, { recursive: true, force: true });
@@ -144,6 +150,34 @@ class WebUpdate {
     }
     this.log(`[web-update] ${m.version} downloaded`);
     return { state: 'ready', version: m.version };
+  }
+
+  /** The version "Go back" would return to: the update before this one, or the installed files. */
+  previousVersion() {
+    if (!this.usingUpdate) return null;
+    const prev = readJson(path.join(this.previous, 'update.json'));
+    if (prev && prev.version !== this.version() && compare(prev.version, this.bundledVersion()) > 0 && compare(this.appVersion, prev.minApp) >= 0) return prev.version;
+    return this.bundledVersion();
+  }
+
+  /**
+   * Goes back from the update in use to the one before it (or to the
+   * installed files), and skips the update left behind until a newer one
+   * comes out. The page is reloaded after this. Returns the version now used.
+   */
+  async rollback() {
+    if (!this.usingUpdate) throw new Error('already using the installed version');
+    const leaving = this.version();
+    fs.writeFileSync(path.join(this.dir, 'bad.json'), JSON.stringify({ version: leaving, at: Date.now(), rolledBack: true }));
+    const prev = readJson(path.join(this.previous, 'update.json'));
+    if (prev && prev.version !== leaving && fs.existsSync(path.join(this.previous, 'index.html'))) {
+      // Copied over (files in use can't be moved away on Windows).
+      await fsp.cp(this.previous, this.current, { recursive: true, force: true });
+      await fsp.rm(this.previous, { recursive: true, force: true });
+    }
+    this.root = this.pickRoot();
+    this.log(`[web-update] went back from ${leaving} to ${this.version()}`);
+    return this.version();
   }
 
   /** Use the downloaded version now (the page is reloaded after this). */

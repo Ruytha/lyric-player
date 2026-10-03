@@ -47,17 +47,17 @@ AirPlay/Cast appears only in browsers that support the Remote Playback API. Shuf
 | Space | Play / pause |
 | ← / → | Seek ±5 s |
 | ↑ / ↓ | Volume |
-| `[` / `]` | Lyric offset −/+ 50 ms (saved per song) |
+| `[` / `]` | Lyric offset −/+ 50 ms (saved per song; for music on this PC also per app) |
 | F or F11 | Full screen (also the ⤢ button and the ••• menu) |
 | N / P | Next / previous song (previous restarts the song after 3 s) |
 | Q | Playing Next |
-| Esc | Back to the library from the player |
 | M | Apple Music Mode on / off |
 | L | Show / hide lyrics (in Apple Music Mode: the Now Playing screen) |
 | C | Find album cover |
 | / | Find lyrics online |
 | E | Edit lyric timing |
 | I | Mini player (desktop app) |
+| K | Floating lyrics (desktop app) |
 | S | Settings |
 
 Tapping ⏮ / ⏭ changes song; holding them seeks 10 s.
@@ -165,9 +165,13 @@ message says which app it is.
   works when the app allows it (Spotify doesn't).
 - The position comes from the app and runs on in between, so the lyrics
   follow along. If an app reports it a little late, `[` / `]` adjust the
-  offset; it's remembered for that song.
+  offset. It's remembered for that song, and also becomes that app's
+  default: other songs from the same app start with the same offset until
+  you change theirs.
 - Lyrics found (or picked with /) are kept for the last 25 songs, so they
-  come back instantly.
+  come back instantly. The ••• menu says where they came from ("Lyrics from
+  BiniLyrics. Wrong? Find others…"); picking others there replaces them.
+  Dropping a `.ttml` on the window works too.
 - Apple Music for Windows reports "Artist — Album" as the artist; it's split
   up. Browser video titles like "Artist - Song (Official Video)" are cleaned.
 - Playing a song in Lyric Player pauses the other app.
@@ -338,13 +342,52 @@ edited (`src/ttml-edit.js`), so everything else in the TTML stays as it was.
 
 ••• → **Share lyric card…** makes an image of up to 6 lines (with their
 translation if you like) on the cover's colours, with the cover, title and
-artist. You can save it as a PNG or copy it (`src/lyric-card.js`).
+artist. **Lyricify** puts them on a frame of the moving background instead.
+You can save it as a PNG or copy it (`src/lyric-card.js`).
+
+## Romanization
+
+Settings → Lyrics → **Romanization** shows the TTML's own romanization under
+each line. When it has none, **Romanize when missing** adds one:
+
+- Korean (Hangul) is romanized in the app (Revised Romanization, with the
+  usual sound changes between syllables), and so is Japanese written only in
+  kana (Hepburn).
+- Lines with kanji or Chinese characters need a dictionary, so the app looks
+  the song up on NetEase and QQ Music and borrows their romanization (romaji,
+  pinyin, jyutping), matched to the lines by time. If too few lines match,
+  it's probably a different version of the song and nothing is changed.
+  NetEase writes romaji syllable by syllable ("te n sa i"), so that's how it shows.
+
+Turning it off takes away only what was added (`src/romanize.js`).
 
 ## Mini player (desktop app)
 
 ••• → **Mini player** (or I) opens a small always-on-top window with the line
 being sung, lit word by word, plus the next line, the cover and a progress
 bar. Hovering shows previous / play / next, back to the player, and close.
+
+## Floating lyrics (desktop app)
+
+••• → **Floating lyrics** (or K) puts the line being sung, and the next one,
+along the bottom of the screen, over every window (games and full-screen
+video too). It's see-through and clicks go straight through it. Hovering it
+shows a few buttons: 🔒 unlocks it so it can be dragged somewhere else (lock
+it again when it's where you want it), − / + change the text size, then back
+to the player and close. Where it sits and its size are remembered
+(`mini.html?bar`, `src/mini.js`).
+
+## Tray and Start with Windows (desktop app)
+
+Settings → **App**:
+
+- **Keep running in the tray:** closing the window leaves Lyric Player in the
+  notification area by the clock, still following your music (and keeping
+  floating lyrics, Discord and Last.fm going). Its menu shows the song and has
+  play / pause, next, previous, Floating lyrics, Settings and Quit. Clicking
+  the icon brings the window back. While the window is hidden nothing is drawn.
+- **Start with Windows**, and **Start in the tray** to wait there instead of
+  opening the window (`desktop/main.cjs`, `desktop/desktop-prefs.cjs`).
 
 ## Apple Music Mode
 
@@ -403,6 +446,14 @@ Settings → About shows the version and has three tools:
   `lyricPlayer.minApp` in `package.json` when an update depends on one. Older
   apps then say an update needs the new installer (`desktop/web-update.cjs`,
   `api/app-update.js`).
+  The official update site is `https://files.ruytha.dev/update/lyricviewer`
+  (the Vercel project "lyricviewer"), used when **Update website** is empty.
+- **What's new:** after an update, the notes for the new versions are shown
+  once (••• → **What's new** shows them again). They're in
+  `src/changelog.json`: add an entry at the top when you raise the version.
+- **Go back:** if something's wrong since an update, About → **Go back to
+  …** returns to the version before it (or the installed one). The version
+  left behind isn't downloaded again; the next newer one is.
 - **Check for updates** (full installer updates): uses `electron-updater` with GitHub
   Releases. To turn it on, set `build.publish` in `desktop/package.json` to
   your repository (`{ "provider": "github", "owner": "you", "repo": "lyric-player" }`).

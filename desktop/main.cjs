@@ -3,12 +3,13 @@
 // The web app is served from a private app:// origin rather than file://, so
 // ES modules load normally and the song library (IndexedDB) has a stable home.
 
-const { app, BrowserWindow, protocol, shell, Menu, ipcMain, session, dialog, clipboard } = require('electron');
+const { app, BrowserWindow, protocol, shell, Menu, ipcMain, session, dialog, clipboard, Tray, nativeImage } = require('electron');
 const { DiscordPresence } = require('./discord-rpc.cjs');
 const { MusicFolders } = require('./music-folders.cjs');
 const { LastFm } = require('./lastfm.cjs');
 const { SystemMedia } = require('./system-media.cjs');
 const { WebUpdate } = require('./web-update.cjs');
+const { DesktopPrefs } = require('./desktop-prefs.cjs');
 const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
@@ -105,7 +106,7 @@ function relayQQMusic() {
 let amWin = null;
 let amReady = null;
 let quitting = false;
-app.on('before-quit', () => { quitting = true; });
+app.on('before-quit', () => { quitting = true; prefs?.flush(); });
 
 function appleMusicWindow() {
   if (alive(amWin)) return amReady;
@@ -408,6 +409,12 @@ function relayUpdates() {
       return web && webUpdate.usingUpdate ? `${web} (app ${app.getVersion()})` : app.getVersion();
     }
     if (kind === 'booted') { clearTimeout(bootTimer); return true; }
+    if (kind === 'versions') return { current: webUpdate.version(), usingUpdate: webUpdate.usingUpdate, previous: webUpdate.previousVersion() };
+    if (kind === 'rollback') {
+      const v = await webUpdate.rollback();
+      for (const w of appWindows()) w.webContents.reloadIgnoringCache();
+      return send({ state: 'none', kind: 'web', version: v });
+    }
     if (kind === 'status') return last;
     if (kind === 'check') return check({ site: typeof params.site === 'string' ? params.site : '', auto: !!params.auto });
     if (kind === 'download') {
@@ -437,11 +444,55 @@ function relayUpdates() {
 // window sends it the state; its buttons send commands back.
 
 let mini = null;
+let bar = null;
+
+/** Floating lyrics: transparent, on top of everything, clicks pass through while locked. */
+function openBar() {
+  if (alive(bar)) { bar.showInactive(); return; }
+  const { screen } = require('electron');
+  const area = screen.getPrimaryDisplay().workArea;
+  const saved = prefs.get('barBounds');
+  const width = Math.min(960, area.width - 40), height = 150;
+  // Where it was last time, if that's still on a screen.
+  const onScreen = (b) => screen.getAllDisplays().some(({ workArea: a }) => b.x < a.x + a.width - 40 && b.x + b.width > a.x + 40 && b.y >= a.y - 20 && b.y < a.y + a.height - 40);
+  const bounds = saved && saved.width > 100 && saved.height > 40 && onScreen(saved)
+    ? saved
+    : { width, height, x: Math.round(area.x + (area.width - width) / 2), y: area.y + area.height - height - 24 };
+  const locked = prefs.get('barLocked') !== false;
+  bar = new BrowserWindow({
+    ...bounds, minWidth: 360, minHeight: 90,
+    frame: false, transparent: true, alwaysOnTop: true, resizable: true, maximizable: false, minimizable: false, fullscreenable: false,
+    skipTaskbar: true, focusable: true, hasShadow: false, backgroundColor: '#00000000', title: 'Floating lyrics', show: false,
+    icon: path.join(__dirname, 'build', 'icon.png'),
+    webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, 'preload.cjs'), backgroundThrottling: false },
+  });
+  // Above full-screen games and video too.
+  bar.setAlwaysOnTop(true, 'screen-saver');
+  bar.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  if (locked) bar.setIgnoreMouseEvents(true, { forward: true });
+  bar.once('ready-to-show', () => bar.showInactive());
+  const save = () => { if (alive(bar)) prefs.set('barBounds', bar.getBounds()); };
+  bar.on('moved', save);
+  bar.on('resized', save);
+  bar.on('closed', () => { bar = null; sendTo(alive(win) ? win : null, 'mini-command', { cmd: 'closed-bar' }); updateTray(); });
+  bar.loadURL(`app://player/mini.html?bar=1&locked=${locked ? 1 : 0}&size=${prefs.get('barSize') || 34}`);
+}
 
 function relayMini() {
   const mainWin = () => (alive(win) ? win : null);
   ipcMain.handle('mini', (event, kind, payload) => {
     if (!fromApp(event)) return false;
+    if (kind === 'open-bar') { openBar(); updateTray(); return true; }
+    if (kind === 'close-bar') { if (alive(bar)) bar.close(); return true; }
+    if (kind === 'bar') {
+      // From the bar itself: lock / unlock, text size, catch the mouse over the handle.
+      if (!alive(bar) || event.sender !== bar.webContents) return false;
+      const p = payload || {};
+      if (typeof p.locked === 'boolean') { prefs.set('barLocked', p.locked); bar.setIgnoreMouseEvents(p.locked, { forward: true }); if (!p.locked) bar.focus(); }
+      if (Number.isFinite(p.size)) prefs.set('barSize', Math.min(72, Math.max(18, Math.round(p.size))));
+      if (typeof p.ignore === 'boolean' && prefs.get('barLocked') !== false) bar.setIgnoreMouseEvents(p.ignore, { forward: true });
+      return true;
+    }
     if (kind === 'open') {
       if (alive(mini)) { mini.show(); mini.focus(); return true; }
       mini = new BrowserWindow({
@@ -458,8 +509,79 @@ function relayMini() {
       return true;
     }
     if (kind === 'close') { if (alive(mini)) mini.close(); return true; }
-    if (kind === 'state') { sendTo(mini, 'mini-state', payload); return true; }
+    if (kind === 'state') { sendTo(mini, 'mini-state', payload); sendTo(bar, 'mini-state', payload); return true; }
     if (kind === 'command') { sendTo(mainWin(), 'mini-command', payload); return true; }
+    return false;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Tray icon and Start with Windows (Settings → App). The page sends the
+// settings and what's playing; the tray menu sends commands back to it.
+
+let prefs = null;
+let tray = null;
+let nowPlaying = { title: '', artist: '', playing: false, has: false };
+const startedHidden = process.argv.includes('--hidden');
+
+function showMain() {
+  if (quitting) return;
+  if (!alive(win)) { createWindow({ show: true }); return; }
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
+
+const toPage = (cmd) => { if (alive(win)) sendTo(win, 'mini-command', { cmd }); else if (cmd === 'settings') showMain(); };
+
+function updateTray() {
+  if (!prefs?.get('tray')) {
+    if (tray) { tray.destroy(); tray = null; }
+    return;
+  }
+  if (!tray) {
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'build', 'icon.png')).resize({ width: 16, height: 16 });
+    tray = new Tray(icon);
+    tray.on('click', () => (alive(win) && win.isVisible() && !win.isMinimized() && win.isFocused() ? win.hide() : showMain()));
+  }
+  const song = nowPlaying.title ? `${nowPlaying.title}${nowPlaying.artist ? ` — ${nowPlaying.artist}` : ''}` : '';
+  tray.setToolTip(song ? `Lyric Player\n${song}`.slice(0, 127) : 'Lyric Player');
+  tray.setContextMenu(Menu.buildFromTemplate([
+    ...(song ? [{ label: song.length > 60 ? `${song.slice(0, 59)}…` : song, enabled: false }, { type: 'separator' }] : []),
+    { label: nowPlaying.playing ? 'Pause' : 'Play', enabled: !!nowPlaying.has, click: () => toPage('toggle') },
+    { label: 'Next', enabled: !!nowPlaying.has, click: () => toPage('next') },
+    { label: 'Previous', enabled: !!nowPlaying.has, click: () => toPage('prev') },
+    { type: 'separator' },
+    { label: 'Floating lyrics', type: 'checkbox', checked: alive(bar), click: () => toPage('bar') },
+    { label: 'Show Lyric Player', click: showMain },
+    { label: 'Settings…', click: () => { showMain(); toPage('settings'); } },
+    { type: 'separator' },
+    { label: 'Quit', click: () => { quitting = true; app.quit(); } },
+  ]));
+}
+
+function applyStartup() {
+  if (!app.isPackaged || process.env.LP_SELFTEST) return; // not for development copies
+  const startup = !!prefs.get('startup');
+  // Portable copies run from a temporary folder; point Windows at the .exe that was started.
+  const exe = process.env.PORTABLE_EXECUTABLE_FILE || process.execPath;
+  app.setLoginItemSettings({ openAtLogin: startup, path: exe, args: prefs.get('startHidden') !== false ? ['--hidden'] : [] });
+}
+
+function relayAppPrefs() {
+  ipcMain.handle('app-prefs', (event, kind, params = {}) => {
+    if (!fromApp(event)) return false;
+    if (kind === 'set') {
+      for (const k of ['tray', 'startup', 'startHidden']) if (typeof params[k] === 'boolean') prefs.set(k, params[k]);
+      updateTray();
+      applyStartup();
+      return true;
+    }
+    if (kind === 'now') {
+      const next = { title: String(params.title || '').slice(0, 200), artist: String(params.artist || '').slice(0, 200), playing: !!params.playing, has: !!params.has };
+      if (JSON.stringify(next) !== JSON.stringify(nowPlaying)) { nowPlaying = next; updateTray(); }
+      return true;
+    }
     return false;
   });
 }
@@ -503,8 +625,8 @@ function relayWindowControls() {
 }
 
 function reportWindowState(w) {
-  const send = () => sendTo(w, 'window-state', { maximized: w.isMaximized(), fullscreen: w.isFullScreen(), focused: w.isFocused() });
-  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'focus', 'blur', 'restore']) w.on(ev, send);
+  const send = () => sendTo(w, 'window-state', { maximized: w.isMaximized(), fullscreen: w.isFullScreen(), focused: w.isFocused(), visible: w.isVisible() && !w.isMinimized() });
+  for (const ev of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen', 'focus', 'blur', 'restore', 'minimize', 'show', 'hide']) w.on(ev, send);
   w.webContents.on('did-finish-load', send);
 }
 
@@ -589,7 +711,7 @@ function serveWebFiles() {
 
 let win = null;
 
-function createWindow() {
+function createWindow({ show = true } = {}) {
   win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -731,7 +853,7 @@ function createWindow() {
       }
       app.quit();
     });
-  } else {
+  } else if (show) {
     win.once('ready-to-show', () => win.show());
   }
   // Links open in the normal browser, not inside the app.
@@ -745,13 +867,19 @@ function createWindow() {
   reportWindowState(win);
   watchUpdatedPage(win);
   win.loadURL('app://player/index.html');
-  // Closing the player closes everything: the mini player and the hidden
-  // Apple Music window would otherwise keep the app running.
+  // With the tray icon on, closing only hides the window (it keeps following
+  // your music). Otherwise closing the player closes everything: the mini
+  // player and the hidden Apple Music window would keep the app running.
+  win.on('close', (e) => {
+    if (!quitting && prefs?.get('tray')) { e.preventDefault(); win.hide(); }
+  });
   win.on('closed', () => {
     win = null;
     quitting = true;
     if (alive(mini)) mini.destroy();
+    if (alive(bar)) bar.destroy();
     if (alive(amWin)) amWin.destroy();
+    tray?.destroy();
     systemMedia?.stop();
     app.quit();
   });
@@ -768,16 +896,11 @@ if (!process.env.LP_SELFTEST && !app.requestSingleInstanceLock()) {
 } else {
   // Opening the app again brings this copy forward, or opens a fresh window
   // if this one's player window is gone.
-  app.on('second-instance', () => {
-    if (quitting) return;
-    if (!alive(win)) { createWindow(); return; }
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
-  });
+  app.on('second-instance', () => showMain());
   app.setAppUserModelId(APP_ID);
   app.whenReady().then(() => {
     Menu.setApplicationMenu(null);
+    prefs = new DesktopPrefs(path.join(app.getPath('userData'), 'desktop-prefs.json'));
     webUpdate = new WebUpdate({ bundledRoot: WEB_ROOT, dataDir: app.getPath('userData'), appVersion: app.getVersion(), log: (m) => console.log(m) });
     if (webUpdate.usingUpdate) console.log(`[web-update] using ${webUpdate.version()}`);
     serveWebFiles();
@@ -793,8 +916,11 @@ if (!process.env.LP_SELFTEST && !app.requestSingleInstanceLock()) {
     relayDiagnostics();
     relaySystemMedia();
     relayWindowControls();
+    relayAppPrefs();
     windowLayout();
-    createWindow();
+    updateTray();
+    // Started with Windows "in the tray": no window until the tray icon is clicked.
+    createWindow({ show: !(startedHidden && prefs.get('tray')) });
   });
   app.on('window-all-closed', () => app.quit());
 }
