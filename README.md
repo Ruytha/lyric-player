@@ -578,28 +578,3 @@ TestFlight / the App Store.
 - `scripts/patch-ios.mjs` sets the icon, launch screen, version and the
   Info.plist entries; it runs as part of `npm run setup` (only needed if the
   `ios/` folder is ever deleted and made again with `npx cap add ios`).
-
-## Spicy Lyrics
-
-Lyrics from [Spicy Lyrics](https://developers.spicylyrics.org) (community
-syllable syncs, or Apple Music / Spotify syncs), searched with Apple Music
-first. Its API key must stay on a server, so the app asks the website:
-`api/spicy-lyrics.js` finds the song on iTunes, gets its Spotify ID from
-song.link, asks Spicy Lyrics with the key and sends back TTML
-(`src/spicy-lyrics.js` converts it). It answers only Lyric Player's own pages
-(the site, `app://player`, `capacitor://localhost`).
-
-To turn it on, make an application at developers.spicylyrics.org and add its
-secret key to the Vercel project, then redeploy:
-
-```
-vercel env add SPICY_LYRICS_KEY production
-vercel deploy --prod
-```
-
-Following Spicy Lyrics' terms, the app shows "Lyrics from Spicy Lyrics" (and,
-for community syncs, the uploader and maker, linked) wherever those lyrics are
-on screen, including the mini player, floating lyrics and lyric cards; keeps
-them at most 30 days before fetching them again; and doesn't export them as
-.ttml files. song.link allows about 10 lookups a minute without a key; the
-website keeps each answer for a day.

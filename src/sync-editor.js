@@ -158,10 +158,6 @@ export class SyncEditor {
   }
 
   export() {
-    if (this.h.canExport && !this.h.canExport()) {
-      this.h.toast('These lyrics are from Spicy Lyrics, whose terms don’t allow saving them as files', { error: true });
-      return;
-    }
     const text = this.edited();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'application/ttml+xml' }));

@@ -1,13 +1,13 @@
 {
   "name": "ttml-lyric-player",
-  "version": "2.5.0",
+  "version": "2.4.1",
   "private": true,
   "type": "module",
   "lyricPlayer": {
     "minApp": "2.2.0"
   },
   "scripts": {
-    "test": "node --test test/ttml-parser.test.js test/spring.test.js test/clock.test.js test/amll-convert.test.js test/lyrics-search.test.js test/netease.test.js test/apple-art.test.js test/qq-music.test.js test/player2.test.js test/system-media.test.js test/web-update.test.js test/romanize.test.js test/spicy-lyrics.test.js"
+    "test": "node --test test/ttml-parser.test.js test/spring.test.js test/clock.test.js test/amll-convert.test.js test/lyrics-search.test.js test/netease.test.js test/apple-art.test.js test/qq-music.test.js test/player2.test.js test/system-media.test.js test/web-update.test.js test/romanize.test.js"
   },
   "dependencies": {
     "ffmpeg-static": "^5.3.0"

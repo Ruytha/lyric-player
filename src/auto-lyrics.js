@@ -7,7 +7,7 @@ const core = (s) => fold(String(s || '').replace(/\s*[([].*?[)\]]/g, '').replace
 const words = (s) => core(s).split(/\s+/).filter(Boolean);
 
 // Better sources first when everything else is equal.
-const SOURCE_RANK = { apple: 5, spicy: 5, amll: 4, bini: 4, qq: 3, netease: 3, lrclib: 1 };
+const SOURCE_RANK = { apple: 5, amll: 4, bini: 4, qq: 3, netease: 3, lrclib: 1 };
 
 /** Score of one search result for a song (0 = not a match). */
 export function lyricsMatch(r, { title, artist = '', duration = 0 }) {

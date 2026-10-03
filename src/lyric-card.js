@@ -133,14 +133,6 @@ export async function drawCard(canvas, data) {
   ctx.font = `600 30px ${font}`;
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.fillText('♫ Lyric Player', PAD, H - PAD + 10);
-  if (data.credit) {
-    // Required by Spicy Lyrics wherever its lyrics appear.
-    ctx.font = `500 24px ${font}`;
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.textAlign = 'right';
-    ctx.fillText(data.credit, W - PAD, H - PAD + 10);
-    ctx.textAlign = 'left';
-  }
 }
 
 export class LyricCardDialog {
