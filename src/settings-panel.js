@@ -105,6 +105,15 @@ export class SettingsPanel {
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); input.blur(); } });
         row.appendChild(input);
         this.controls.set(s.key, { s, input });
+      } else if (s.type === 'choice' && s.select) {
+        // Long lists: a drop-down in the row's header.
+        const sel = h('select', 'set-select');
+        sel.id = id;
+        for (const [value, text] of s.options) { const o = h('option', '', text); o.value = value; sel.appendChild(o); }
+        sel.addEventListener('change', () => this.settings.set(s.key, sel.value));
+        head.appendChild(sel);
+        row.appendChild(head);
+        this.controls.set(s.key, { s, select: sel });
       } else if (s.type === 'choice') {
         row.appendChild(head);
         const seg = h('div', 'segmented');
@@ -140,6 +149,8 @@ export class SettingsPanel {
       c.input.checked = !!v;
     } else if (c.s.type === 'text') {
       if (document.activeElement !== c.input) c.input.value = v;
+    } else if (c.select) {
+      c.select.value = v;
     } else if (c.s.type === 'choice') {
       for (const [value, b] of c.buttons) b.setAttribute('aria-checked', String(value === v));
     }

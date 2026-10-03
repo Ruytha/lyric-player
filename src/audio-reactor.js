@@ -33,6 +33,7 @@ export class AudioReactor {
     this.bass = 0;
     this.energy = 0;
     this.stats = null; // running floor/peak, seeded from the first frames
+    this.fx = null;    // AudioFx, set by the page
     audio.addEventListener('play', () => this.attach());
   }
 
@@ -53,7 +54,8 @@ export class AudioReactor {
       an.smoothingTimeConstant = 0.5;
       an.minDecibels = -90;
       an.maxDecibels = -15;
-      src.connect(an);
+      // Effects (karaoke, levelling, crossfade) sit before the analyser.
+      (this.fx ? this.fx.build(this.ctx, src) : src).connect(an);
       an.connect(this.ctx.destination);
       this.analyser = an;
       this.bins = new Uint8Array(an.frequencyBinCount);

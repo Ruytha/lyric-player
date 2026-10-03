@@ -1,5 +1,23 @@
 [
   {
+    "version": "2.9.0",
+    "date": "2026-10-03",
+    "notes": [
+      "Lyric clips: record a short video of the moving lyrics for stories and posts (••• → Clip). Sound is included for your own song files only.",
+      "Your stats: minutes listened, top songs and artists, streaks and when you listen most (••• → Your stats). Kept on this device only.",
+      "Lyrics quiz: a word disappears from the next line; type it before the line ends (••• → Lyrics quiz).",
+      "Search by lyrics: type a line in the library search to find the song.",
+      "Tap to sync: paste plain lyrics and tap as each line starts to make synced lyrics.",
+      "Translate lyrics that have no translation (••• → Translate lyrics; pick the language in Settings → Lyrics).",
+      "Send your own lyrics to AMLL TTML DB (••• → Send to AMLL TTML DB).",
+      "Karaoke (turns the vocal down), Even out volume, Crossfade and Smart shuffle in Settings → Playback, for your own songs.",
+      "Sleep timer (••• → Sleep timer): 15 to 60 minutes, or the end of the song, with a fade.",
+      "Lyric fonts and colours, including one taken from the album cover (Settings → Lyrics).",
+      "Your own emoji words for Emoji reactions (Settings → Fun).",
+      "New installer (app 2.9.0): global shortcuts (Ctrl+Alt+Space, arrows, L, P) and a phone remote that shows the lyrics on your phone over Wi-Fi."
+    ]
+  },
+  {
     "version": "2.8.0",
     "date": "2026-10-03",
     "notes": [

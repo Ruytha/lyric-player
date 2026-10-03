@@ -12,6 +12,29 @@ function shuffled(list) {
   return a;
 }
 
+/**
+ * Smart shuffle: songs heard recently go later (weighted random order), and
+ * the same artist doesn't play twice in a row when it can be avoided.
+ * info(id) → { artist, lastPlayed }.
+ */
+export function smartShuffled(list, info, { now = Date.now(), rand = Math.random } = {}) {
+  const DAY = 86400000;
+  const keyed = list.map((id) => {
+    const i = info(id) || {};
+    const ago = i.lastPlayed ? Math.max(0, now - i.lastPlayed) / DAY : 30;
+    const weight = 0.15 + Math.min(1, ago / 7); // played today ≈ 0.15, a week ago or more = 1.15
+    return { id, artist: String(i.artist || '').toLowerCase().split(/\s*(?:,|&| feat)/)[0], key: rand() ** (1 / weight) };
+  }).sort((a, b) => b.key - a.key);
+  const out = [];
+  while (keyed.length) {
+    const prev = out.at(-1)?.artist;
+    let j = keyed.findIndex((x) => !prev || !x.artist || x.artist !== prev);
+    if (j < 0 || j > 6) j = 0; // don't push a song too far just for variety
+    out.push(keyed.splice(j, 1)[0]);
+  }
+  return out.map((x) => x.id);
+}
+
 export class Queue {
   constructor({ storage = globalThis.localStorage } = {}) {
     this.storage = storage;
@@ -21,6 +44,7 @@ export class Queue {
     this.repeat = 'off';       // off | all | one
     this.original = null;      // order before shuffling
     this.listeners = new Set();
+    this.smart = null;         // info(id) for smart shuffle, or null for plain
     try {
       const s = JSON.parse(this.storage?.getItem(KEY) || 'null');
       if (s && Array.isArray(s.items)) {
@@ -50,7 +74,7 @@ export class Queue {
     const list = [...new Set(ids)];
     this.original = list.slice();
     if (this.shuffle) {
-      const rest = shuffled(list.filter((x) => x !== startId));
+      const rest = this.mix(list.filter((x) => x !== startId));
       this.items = startId != null && list.includes(startId) ? [startId, ...rest] : rest;
       this.pos = 0;
     } else {
@@ -80,7 +104,7 @@ export class Queue {
       if (this.shuffle) {
         // New random order for the next round, not starting with the song just played.
         const last = this.items[this.items.length - 1];
-        this.items = shuffled(this.items);
+        this.items = this.mix(this.items);
         if (this.items.length > 1 && this.items[0] === last) this.items.push(this.items.shift());
       }
     } else return null;
@@ -162,7 +186,7 @@ export class Queue {
     const cur = this.current;
     if (on) {
       this.original = this.items.slice();
-      const rest = shuffled(this.items.filter((_, i) => i !== this.pos));
+      const rest = this.mix(this.items.filter((_, i) => i !== this.pos));
       this.items = cur != null ? [cur, ...rest] : rest;
       this.pos = cur != null ? 0 : -1;
     } else if (this.original) {
@@ -172,6 +196,8 @@ export class Queue {
     }
     this.changed();
   }
+
+  mix(list) { return this.smart ? smartShuffled(list, this.smart) : shuffled(list); }
 
   cycleRepeat() {
     this.repeat = { off: 'all', all: 'one', one: 'off' }[this.repeat];

@@ -3,7 +3,8 @@
 // The web app is served from a private app:// origin rather than file://, so
 // ES modules load normally and the song library (IndexedDB) has a stable home.
 
-const { app, BrowserWindow, protocol, shell, Menu, ipcMain, session, dialog, clipboard, Tray, nativeImage } = require('electron');
+const { app, BrowserWindow, protocol, shell, Menu, ipcMain, session, dialog, clipboard, Tray, nativeImage, globalShortcut } = require('electron');
+const { RemoteServer } = require('./remote-server.cjs');
 const { DiscordPresence } = require('./discord-rpc.cjs');
 const { MusicFolders } = require('./music-folders.cjs');
 const { LastFm } = require('./lastfm.cjs');
@@ -582,7 +583,46 @@ function showMain() {
   win.focus();
 }
 
-const toPage = (cmd) => { if (alive(win)) sendTo(win, 'mini-command', { cmd }); else if (cmd === 'settings') showMain(); };
+const toPage = (cmd, value) => { if (alive(win)) sendTo(win, 'mini-command', { cmd, value }); else if (cmd === 'settings') showMain(); };
+
+// ---------------------------------------------------------------------------
+// Global shortcuts (Settings → App): work while another app is in front or
+// the player is in the tray.
+
+const HOTKEYS = [
+  ['CommandOrControl+Alt+Space', 'toggle'],
+  ['CommandOrControl+Alt+Right', 'next'],
+  ['CommandOrControl+Alt+Left', 'prev'],
+  ['CommandOrControl+Alt+L', 'bar'],
+  ['CommandOrControl+Alt+P', 'window'],
+];
+
+function applyHotkeys() {
+  globalShortcut.unregisterAll();
+  if (!prefs?.get('hotkeys')) return [];
+  const failed = [];
+  for (const [keys, cmd] of HOTKEYS) {
+    const ok = globalShortcut.register(keys, () => {
+      if (cmd === 'window') { if (alive(win) && win.isVisible() && win.isFocused()) win.hide(); else showMain(); }
+      else toPage(cmd);
+    });
+    if (!ok) failed.push(keys);
+  }
+  if (failed.length) console.log(`[hotkeys] taken by another app: ${failed.join(', ')}`);
+  return failed;
+}
+
+// ---------------------------------------------------------------------------
+// Phone remote (Settings → Phone remote), see remote-server.cjs.
+
+let remote = null;
+
+async function applyRemote() {
+  remote ??= new RemoteServer({ getRoot: pageRoot, onCommand: ({ cmd, value }) => toPage(cmd, value), log: (m) => console.log(m) });
+  if (!prefs.get('remote')) { remote.stop(); return; }
+  if (!prefs.get('remoteToken')) prefs.set('remoteToken', RemoteServer.newToken());
+  await remote.start(prefs.get('remoteToken'));
+}
 
 function updateTray() {
   if (!prefs?.get('tray')) {
@@ -623,11 +663,21 @@ function relayAppPrefs() {
   ipcMain.handle('app-prefs', (event, kind, params = {}) => {
     if (!fromApp(event)) return false;
     if (kind === 'set') {
-      for (const k of ['tray', 'startup', 'startHidden']) if (typeof params[k] === 'boolean') prefs.set(k, params[k]);
+      for (const k of ['tray', 'startup', 'startHidden', 'hotkeys', 'remote']) if (typeof params[k] === 'boolean') prefs.set(k, params[k]);
       updateTray();
       applyStartup();
+      if (typeof params.hotkeys === 'boolean') applyHotkeys();
+      if (typeof params.remote === 'boolean') return applyRemote().then(() => true);
       return true;
     }
+    if (kind === 'hotkeys') return { list: HOTKEYS.map(([k, c]) => [k.replace('CommandOrControl', IS_MAC ? 'Cmd' : 'Ctrl'), c]), failed: prefs.get('hotkeys') ? applyHotkeys() : [] };
+    if (kind === 'remote-info') return { running: !!remote?.running, urls: remote?.urls() || [] };
+    if (kind === 'remote-new-code') {
+      prefs.set('remoteToken', RemoteServer.newToken());
+      remote?.setToken(prefs.get('remoteToken'));
+      return { running: !!remote?.running, urls: remote?.urls() || [] };
+    }
+    if (kind === 'remote-state') { if (remote?.running) remote.setState(params); return true; }
     if (kind === 'now') {
       const next = { title: String(params.title || '').slice(0, 200), artist: String(params.artist || '').slice(0, 200), playing: !!params.playing, has: !!params.has };
       if (JSON.stringify(next) !== JSON.stringify(nowPlaying)) { nowPlaying = next; updateTray(); }
@@ -941,6 +991,8 @@ function createWindow({ show = true } = {}) {
 
 // Self-test runs get a throwaway profile so they never touch (or collide with)
 // a copy of the app that is already open.
+// Development copies can run beside the installed app with their own profile.
+if (process.env.LP_USERDATA) app.setPath('userData', process.env.LP_USERDATA);
 if (process.env.LP_SELFTEST) {
   app.setPath('userData', path.join(require('node:os').tmpdir(), `lyric-player-selftest-${process.pid}`));
 }
@@ -975,10 +1027,13 @@ if (!process.env.LP_SELFTEST && !app.requestSingleInstanceLock()) {
     relayGlass();
     windowLayout();
     updateTray();
+    applyHotkeys();
+    applyRemote().catch(() => {});
     // Started with Windows "in the tray": no window until the tray icon is clicked.
     createWindow({ show: !(startedHidden && prefs.get('tray')) });
   });
   app.on('window-all-closed', () => app.quit());
+  app.on('will-quit', () => { globalShortcut.unregisterAll(); remote?.stop(); });
   // Mac: clicking the Dock icon brings the window back (from the tray too).
   app.on('activate', () => { if (app.isReady()) showMain(); });
 }

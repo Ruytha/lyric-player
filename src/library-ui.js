@@ -31,6 +31,8 @@ export class LibraryPanel {
     this.playlists = [];
     this.openPlaylist = null;
     this.filter = '';
+    this.lyricFold = new Map(); // id → folded lyrics, for searching by a line
+    this.indexed = false;
     this.sort = 'recent';
     this.limit = PAGE;
     this.menu = null;
@@ -43,7 +45,16 @@ export class LibraryPanel {
     });
     this.body.addEventListener('click', (e) => this.onClick(e));
     this.body.addEventListener('input', (e) => {
-      if (e.target.matches('.lib-search')) { this.filter = e.target.value; this.limit = PAGE; this.renderSongRows(); }
+      if (e.target.matches('.lib-search')) {
+        this.filter = e.target.value;
+        this.limit = PAGE;
+        this.renderSongRows();
+        // First search by lyrics: add the lyrics text of older songs, then search again.
+        if (!this.indexed && this.filter.trim().length >= 3 && this.h.indexLyrics) {
+          this.indexed = true;
+          this.h.indexLyrics().then((n) => (n ? this.refresh() : null)).catch(() => {});
+        }
+      }
     });
     this.body.addEventListener('change', (e) => {
       if (e.target.matches('.lib-sort')) { this.sort = e.target.value; this.renderSongRows(); }
@@ -74,6 +85,7 @@ export class LibraryPanel {
   async refresh() {
     this.songs = await this.h.library.list().catch(() => []);
     this.byId = new Map(this.songs.map((s) => [s.id, s]));
+    this.lyricFold.clear();
     this.playlists = await this.h.library.playlists().catch(() => []);
     if (this.isOpen) this.render();
   }
@@ -94,7 +106,7 @@ export class LibraryPanel {
 
   // ------------------------------------------------------------------ rows
 
-  row(song, { index = null, drag = false, kind = 'song' } = {}) {
+  row(song, { index = null, drag = false, kind = 'song', hit = null } = {}) {
     const s = song || { id: '', title: 'Missing song' };
     const cur = s.id === this.h.currentId();
     const sub = [s.artist, s.album].filter(Boolean).join(' · ') || (s.path ? s.folder || '' : '');
@@ -102,7 +114,7 @@ export class LibraryPanel {
       ${drag ? `<span class="lr-grip" aria-hidden="true">${ICON.grip}</span>` : ''}
       <button class="lr-main" data-play type="button">
         <span class="lib-art">${s.thumb ? `<img src="${esc(s.thumb)}" alt="" loading="lazy">` : ''}</span>
-        <span class="lib-text"><span class="lib-title">${esc(s.title || s.audioName || 'Unknown')}</span><span class="lib-sub">${esc(sub)}${s.hasLyrics ? '' : `${sub ? ' · ' : ''}<em>no lyrics</em>`}</span></span>
+        <span class="lib-text"><span class="lib-title">${esc(s.title || s.audioName || 'Unknown')}</span><span class="lib-sub">${esc(sub)}${s.hasLyrics ? '' : `${sub ? ' · ' : ''}<em>no lyrics</em>`}</span>${hit ? `<span class="lib-hit">“${esc(hit)}”</span>` : ''}</span>
         <span class="lr-dur">${fmtDur(s.duration)}</span>
       </button>
       <button class="lr-more" data-more type="button" aria-label="More for ${esc(s.title || s.audioName)}">${ICON.more}</button>
@@ -133,7 +145,7 @@ export class LibraryPanel {
     const desktop = this.h.desktop;
     this.body.innerHTML = `
       <div class="lib-tools">
-        <input class="lib-search" type="search" placeholder="Search songs" value="${esc(this.filter)}" autocomplete="off" spellcheck="false" aria-label="Search songs">
+        <input class="lib-search" type="search" placeholder="Search songs or lyrics" value="${esc(this.filter)}" autocomplete="off" spellcheck="false" aria-label="Search songs">
         <select class="lib-sort" aria-label="Sort">
           ${[['recent', 'Recent'], ['title', 'Title'], ['artist', 'Artist'], ['album', 'Album']].map(([v, t]) => `<option value="${v}"${this.sort === v ? ' selected' : ''}>${t}</option>`).join('')}
         </select>
@@ -153,15 +165,34 @@ export class LibraryPanel {
       <button class="pill pill-small" data-act="add-folder">Add music folder…</button>`;
   }
 
+  /** The line of a song's lyrics that contains the phrase, or null. */
+  lyricHit(s, f) {
+    if (!s.lyricsText || f.length < 3) return null;
+    let folded = this.lyricFold.get(s.id);
+    if (folded == null) { folded = fold(s.lyricsText.replace(/\n/g, ' ')); this.lyricFold.set(s.id, folded); }
+    if (!folded.includes(f)) return null;
+    const lines = s.lyricsText.split('\n');
+    return lines.find((l) => fold(l).includes(f)) || lines.find((l) => f.split(' ').some((t) => fold(l).includes(t))) || null;
+  }
+
   visibleSongs() {
     const f = fold(this.filter.trim());
     let list = this.songs;
+    this.hits = new Map();
     if (f) {
       const terms = f.split(/\s+/);
-      list = list.filter((s) => {
+      const byName = list.filter((s) => {
         const hay = fold(`${s.title || ''} ${s.artist || ''} ${s.album || ''} ${s.audioName || ''}`);
         return terms.every((t) => hay.includes(t));
       });
+      const named = new Set(byName.map((s) => s.id));
+      const byLyrics = list.filter((s) => {
+        if (named.has(s.id)) return false;
+        const hit = this.lyricHit(s, f);
+        if (hit) this.hits.set(s.id, hit);
+        return !!hit;
+      });
+      list = byName.concat(byLyrics);
     }
     const key = (s, k) => fold(s[k] || (k === 'title' ? s.audioName : '') || '￿');
     if (this.sort === 'title') list = list.slice().sort((a, b) => key(a, 'title').localeCompare(key(b, 'title')));
@@ -178,7 +209,7 @@ export class LibraryPanel {
     const count = this.body.querySelector('.lib-count');
     if (count) count.textContent = this.songs.length ? `${list.length} of ${this.songs.length} songs` : '';
     host.innerHTML = list.length
-      ? list.slice(0, this.limit).map((s) => this.row(s)).join('') + (list.length > this.limit ? `<button class="link-btn lib-more" data-act="more">Show more (${list.length - this.limit})</button>` : '')
+      ? list.slice(0, this.limit).map((s) => this.row(s, { hit: this.hits?.get(s.id) })).join('') + (list.length > this.limit ? `<button class="link-btn lib-more" data-act="more">Show more (${list.length - this.limit})</button>` : '')
       : `<div class="queue-empty">${this.songs.length ? 'No songs match.' : this.h.desktop ? 'Add a music folder, or drop songs on the player.' : 'Songs you add are remembered here, in this browser.'}</div>`;
   }
 

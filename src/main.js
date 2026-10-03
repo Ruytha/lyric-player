@@ -34,6 +34,15 @@ import { showWhatsNew } from './whats-new.js';
 import { showCredits } from './credits.js';
 import { lookupSongwriters } from './songwriters.js';
 import { EmojiReactions } from './emoji-reactions.js';
+import { AudioFx } from './audio-fx.js';
+import { SleepTimer } from './sleep-timer.js';
+import { PlayLog, showStats } from './stats.js';
+import { LyricQuiz } from './quiz.js';
+import { TapSync } from './tap-sync.js';
+import { translateModel } from './translate.js';
+import { LyricClip } from './lyric-clip.js';
+import { lyricsPlainText } from './lyric-index.js';
+import { buildHotkeysRow, buildRemoteRow, applyLyricLook } from './extras-ui.js';
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
@@ -127,6 +136,8 @@ const pcAppOffsetKey = (name) => `lyricplayer:pcApp:${name}`;
 const clock = new PlaybackClock(audio);
 const settings = new Settings();
 const reactor = new AudioReactor(audio);
+const fx = new AudioFx();
+reactor.fx = fx;
 const queue = new Queue();
 
 // Backgrounds: AMLL's WebGL mesh gradient, or our blurred artwork (also the
@@ -202,6 +213,14 @@ const ui = new PlayerUI(audio, {
       case 'bar': toggleBar(); break;
       case 'whats-new': showWhatsNew({ force: true }); break;
       case 'credits': showCredits(); break;
+      case 'stats': showStats({ log: playLog }); break;
+      case 'quiz': quiz.toggle(); break;
+      case 'tap-sync': tapSync.open(); break;
+      case 'translate': translateLyrics(); break;
+      case 'clip': lyricClip.open(); break;
+      case 'karaoke': settings.set('karaoke', !settings.get('karaoke')); break;
+      case 'sleep': sleep.cycle(); break;
+      case 'amll-submit': submitToAmll(); break;
     }
   },
 });
@@ -227,6 +246,8 @@ const settingsPanel = new SettingsPanel($('settingsSheet'), settings, {
     discordStatus: (row) => { discordStatusRow = row; row.hidden = true; },
     lastfmAccount: (row) => buildLastfmRow(row, { settings, toast }),
     about: (row) => buildAboutRow(row, { settings, toast }),
+    hotkeysInfo: (row) => buildHotkeysRow(row, { native }),
+    remoteInfo: (row) => { refreshRemoteRow = buildRemoteRow(row, { native, settings, toast }); },
   },
 });
 $('settingsBtn').addEventListener('click', (e) => {
@@ -244,12 +265,18 @@ settings.subscribe((key, value, s) => {
   renderer.apply(am ? { ...s, alignAnchor: 'top', alignPosition: Math.min(s.alignPosition, 0.35) * 0.3 } : s);
   if (key === null || key === 'layout') applyLayout(am);
   if (key === 'motionArt') applyCover();
+  if (key === null || key === 'karaoke') { fx.setKaraoke(s.karaoke); $('karaokeItem')?.setAttribute('aria-checked', String(!!s.karaoke)); }
+  if (key === null || key === 'levelVolume') fx.setLevel(s.levelVolume);
+  if (key === null || key === 'emojiWords') emoji.setCustomWords(s.emojiWords);
+  if (key === null || key === 'lyricFont' || key === 'lyricColor') applyLyricLook(s, { art: () => state.artUrl }).then(() => renderer.remeasure());
+  if (key === null || key === 'smartShuffle') queue.smart = s.smartShuffle ? shuffleInfo : null;
+  if (key === 'hotkeys' || key === 'remote') native?.appPrefs?.('set', { [key]: value }).then(() => refreshRemoteRow?.()).catch(() => {});
   if (key === null || key === 'emojiReactions') emoji.setEnabled(s.emojiReactions);
   if (key === 'lookupWriters' && value) fillSongwriters();
   if (key === null || key.startsWith('discord')) updatePresence();
   if (key === 'autoArt' && value) autoCover();
   if (key === 'followPc' && pcState?.available) startSystemMedia(s.followPc);
-  if (key === null || key === 'tray' || key === 'startup' || key === 'startHidden') native?.appPrefs?.('set', { tray: s.tray, startup: s.startup, startHidden: s.startHidden }).catch(() => {});
+  if (key === null || key === 'tray' || key === 'startup' || key === 'startHidden') native?.appPrefs?.('set', { tray: s.tray, startup: s.startup, startHidden: s.startHidden, ...(key === null ? { hotkeys: s.hotkeys, remote: s.remote } : {}) }).catch(() => {});
   if (key === 'autoRoman' && state.model) {
     if (value) { romanizeLocally(state.model); borrowRomanization(state.model); } else clearAddedRomanization(state.model);
     renderer.setLyrics(state.model, '');
@@ -269,7 +296,7 @@ settings.subscribe((key, value, s) => {
   $('bg').style.setProperty('--dim', s.bgDim);
   $('bg').classList.toggle('amll-mode', useAmll);
   $('bg').classList.toggle('lyricify-mode', useLyricify);
-  reactor.enabled = s.bgReact > 0 || s.bgPulse > 0;
+  reactor.enabled = s.bgReact > 0 || s.bgPulse > 0 || s.karaoke || s.levelVolume || s.crossfade > 0;
   if (reactor.enabled && !audio.paused) reactor.attach();
 
   setGlassEnabled(s.glass);
@@ -656,7 +683,7 @@ async function sendMiniState() {
   }).catch(() => {});
 }
 
-window.lyricPlayerNative?.onMiniCommand?.(({ cmd }) => {
+window.lyricPlayerNative?.onMiniCommand?.(({ cmd, value }) => {
   if (cmd === 'toggle') togglePlay();
   else if (cmd === 'next') playNext();
   else if (cmd === 'prev') playPrev();
@@ -667,6 +694,8 @@ window.lyricPlayerNative?.onMiniCommand?.(({ cmd }) => {
   else if (cmd === 'close-bar') toggleBar(false);
   else if (cmd === 'closed-bar') { barOpen = false; $('barItem').setAttribute('aria-checked', 'false'); sendTray(); }
   else if (cmd === 'settings') { settingsPanel.open(); $('settingsBtn').setAttribute('aria-expanded', 'true'); }
+  else if (cmd === 'seek' && Number.isFinite(value)) seek(value);
+  else if (cmd === 'volume' && Number.isFinite(value)) audio.volume = Math.min(1, Math.max(0, value));
   setTimeout(sendMiniState, 50);
 });
 for (const ev of ['play', 'pause', 'seeked', 'loadedmetadata']) audio.addEventListener(ev, () => setTimeout(sendMiniState, 30));
@@ -830,6 +859,7 @@ function setArtwork(url, { owned = true, save = true } = {}) {
   state.artUrl = url;
   state.artOwned = owned && !!url;
   ui.setArtwork(url);
+  if (settings.get('lyricColor') === 'cover') applyLyricLook(settings.values, { art: () => url });
   background_.setImage(url);
   const id = state.songId;
   if (id && save) {
@@ -853,7 +883,12 @@ function classify(file) {
 }
 
 function setAudioSource(src, name, { owned = false } = {}) {
-  if (state.audioUrl && state.audioOwned) URL.revokeObjectURL(state.audioUrl);
+  if (state.audioUrl && state.audioOwned) {
+    if (fx.tailUses(state.audioUrl)) state.revokeAfterFade = state.audioUrl; // still fading out
+    else URL.revokeObjectURL(state.audioUrl);
+  }
+  fx.newSong();
+  state.crossfaded = false;
   state.audioUrl = src;
   state.audioOwned = owned;
   state.audioName = name;
@@ -953,10 +988,11 @@ function loadTTMLText(text, name, { save = true, source = null } = {}) {
   fillSongwriters();
   if (roman?.needsLookup && settings.get('romanization')) borrowRomanization(model);
   ui.setTranslation(model.hasTranslation, state.showTranslation);
+  updateLyricItems();
   if (model.timing === 'none') toast('These lyrics have no timing — showing static lyrics.');
   if (save) {
     if (state.external) savePcLyrics(state.external.key, { ttml: text, name, source });
-    else if (state.songId) { remember({ ttmlName: name, ttml: text, lyricsSource: source }); autoCover(); }
+    else if (state.songId) { remember({ ttmlName: name, ttml: text, lyricsSource: source, lyricsText: lyricsPlainText(text) }); autoCover(); }
     else if (!state.audioName) state.pendingTtml = { ttmlName: name, ttml: text, lyricsSource: source };
   }
   return true;
@@ -1134,9 +1170,11 @@ function frame(now) {
     ui.update(media, dt, playing);
     if (!state.lyricsHidden) renderer.update(clock.lyricTime, dt, playing);
     emoji.update(clock.lyricTime, playing);
+    quiz.update(clock.lyricTime);
     reactor.update(dt, playing);
     if (!glassWindowOk || !settings.get('macGlass')) background.update(dt, playing, reactor);
   }
+  fx.update(dt, playing && !state.external);
   if (syncEditor.isOpen) syncEditor.update(clock.lyricTime);
   if ((miniOpen || barOpen) && now - miniSent > 400) sendMiniState();
   requestAnimationFrame(frame);
@@ -1260,6 +1298,7 @@ audio.addEventListener('ended', () => playNext({ auto: true }));
 var libraryPanel = new LibraryPanel($('librarySheet'), {
   library,
   queue,
+  indexLyrics: () => library.addLyricsText(lyricsPlainText, native?.music ? (p) => native.music('read-ttml', { path: p }) : null),
   desktop: !!native?.music,
   currentId: () => state.songId,
   play(ids, startId) { playQueued(queue.set(ids, startId)); },
@@ -1459,6 +1498,173 @@ async function pcLyrics(token, info, duration) {
 
 startSystemMedia(!!settings.get('followPc'));
 
+// ---------------------------------------------------------------------------
+// Crossfade (Settings → Playback): the end of a song fades out on a second
+// player while the next one fades in. Own songs only.
+
+function hasNextSong() {
+  return queue.repeat !== 'one' && (queue.pos + 1 < queue.items.length || (queue.repeat === 'all' && queue.items.length > 1));
+}
+setInterval(() => {
+  const secs = settings.get('crossfade');
+  if (!secs || state.external || state.crossfaded || !fx.ready || audio.paused || !Number.isFinite(audio.duration)) return;
+  const left = audio.duration - audio.currentTime;
+  if (left > secs || left < 0.5 || audio.duration < secs * 3 || !hasNextSong()) return;
+  state.crossfaded = true;
+  const url = state.audioUrl;
+  fx.startTail(url, audio.currentTime, Math.min(secs, left), () => {
+    if (state.revokeAfterFade === url) { URL.revokeObjectURL(url); state.revokeAfterFade = null; }
+  });
+  fx.fadeTo(0, 0.05);
+  const fadeIn = () => fx.fadeTo(1, secs);
+  audio.addEventListener('playing', fadeIn, { once: true });
+  setTimeout(() => { audio.removeEventListener('playing', fadeIn); if (fx.fade?.gain.value < 0.5) fx.fadeTo(1, 1); }, 4000);
+  playNext({ auto: true });
+}, 200);
+
+// ---------------------------------------------------------------------------
+// Sleep timer, stats, quiz, tap-to-sync, translations, lyric clips
+
+const sleep = new SleepTimer({
+  stop: () => { if (state.external) pcCommand('pause'); else audio.pause(); toast('Sleep timer: music stopped'); },
+  fade: (to, secs) => { if (!state.external && fx.ready) fx.fadeTo(to, secs); },
+  remaining: () => { const p = playback(); return Number.isFinite(p.duration) && p.duration > 0 ? (p.duration - p.position) / (p.rate || 1) : Infinity; },
+  onChange: (label) => {
+    const sub = $('sleepItem')?.querySelector('.mi-sub');
+    if (!sub) return;
+    sub.textContent = label;
+    sub.hidden = !label;
+    $('sleepItem').setAttribute('aria-checked', String(!!label));
+  },
+});
+
+const playLog = new PlayLog();
+setInterval(() => {
+  const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
+  const p = playback();
+  playLog.tick(p.has ? { title: pick('title'), artist: pick('artist'), album: state.tagMeta.album || state.cover?.album || '' } : null, p.playing);
+}, 1000);
+addEventListener('pagehide', () => playLog.flush());
+
+const quiz = new LyricQuiz({ model: () => state.model, time: () => clock.lyricTime, toast });
+
+const tapSync = new TapSync({
+  position: () => playback().position,
+  seek,
+  play: () => { if (!playback().playing) togglePlay(); },
+  pause: () => { if (playback().playing) togglePlay(); },
+  song: () => { const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || ''; return { title: pick('title'), artist: pick('artist') }; },
+  duration: () => { const d = playback().duration; return Number.isFinite(d) ? d : 0; },
+  initialText: () => (state.model ? state.model.lines.map((l) => l.text).join('\n') : ''),
+  onDone: (ttml) => {
+    const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
+    const name = `${[pick('artist'), pick('title')].filter(Boolean).join(' - ') || 'lyrics'}.ttml`.replace(/[\\/:*?"<>|]+/g, ' ');
+    if (loadTTMLText(ttml, name, { save: !!state.songId || !!state.external, source: 'file' })) toast('Synced lyrics saved for this song');
+  },
+  toast,
+});
+
+function translationSite() {
+  if (/^https?:$/.test(location.protocol) && !/^(localhost|127\.)/.test(location.hostname)) return location.origin;
+  return updateSite(settings);
+}
+
+async function translateLyrics() {
+  const model = state.model;
+  if (!model) return;
+  toast('Translating…', { key: 'translate', ms: 30000 });
+  try {
+    const r = await translateModel(model, settings.get('translateTo'), { site: translationSite() });
+    if (state.model !== model) return;
+    if (r.same) { toast('These lyrics are already in that language', { key: 'translate' }); return; }
+    if (!r.count) { toast('Nothing to translate', { key: 'translate' }); return; }
+    renderer.setLyrics(model, '');
+    settings.set('translation', true);
+    ui.setTranslation(true, true);
+    updateLyricItems();
+    toast(`Translated ${r.count} lines (${r.by})`, { key: 'translate' });
+  } catch (e) {
+    toast(`Couldn’t translate: ${e.message}`, { key: 'translate', error: true });
+  }
+}
+
+/** Menu items that depend on the lyrics shown. */
+function updateLyricItems() {
+  const m = state.model;
+  const tr = $('translateItem');
+  if (tr) tr.hidden = !m || m.lines.every((l) => l.translation) || !m.lines.length;
+  const amll = $('amllItem');
+  if (amll) amll.hidden = !m || m.timing === 'none' || !['file', 'link'].includes(state.lyricsSource);
+}
+
+// Your own lyrics → AMLL TTML DB, where AMLL Player and this app find lyrics.
+async function submitToAmll() {
+  if (!state.ttmlText) return;
+  try { await navigator.clipboard.writeText(state.ttmlText); } catch { /* clipboard blocked */ }
+  const blob = new Blob([state.ttmlText], { type: 'application/ttml+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = state.ttmlName || 'lyrics.ttml';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  window.open('https://github.com/amll-dev/amll-ttml-db/issues/new/choose', '_blank', 'noopener');
+  toast('Saved the .ttml and copied it. On the AMLL TTML DB page, pick the lyrics submission form and add the file (a GitHub account is needed).', { ms: 9000 });
+}
+
+const lyricClip = new LyricClip({
+  data: () => {
+    const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
+    return { model: state.model, title: pick('title'), artist: pick('artist'), art: state.artUrl, time: clock.lyricTime, ownAudio: !state.external && !!audio.src };
+  },
+  background: () => (settings.get('bgStyle') === 'lyricify' ? lyricifyBg?.snapshot?.() || null : null),
+  audioStream: () => {
+    if (!fx.ready) return null;
+    clipDest = fx.ctx.createMediaStreamDestination();
+    fx.out.connect(clipDest);
+    return clipDest.stream;
+  },
+  stopAudioStream: () => { if (clipDest) { try { fx.out.disconnect(clipDest); } catch { /* gone */ } clipDest = null; } },
+  playFrom: (t) => { seek(t - clock.offsetMs / 1000); audio.play().catch(() => {}); },
+  pause: () => audio.pause(),
+  lyricTime: () => audio.currentTime + clock.offsetMs / 1000, // not the frame clock: it stops when hidden
+  toast,
+});
+var clipDest = null;
+
+// ---------------------------------------------------------------------------
+// Smart shuffle: what it knows about each song.
+
+function shuffleInfo(id) {
+  const s = libraryPanel?.byId?.get(id);
+  return s ? { artist: s.artist, lastPlayed: s.lastPlayed } : null;
+}
+queue.smart = settings.get('smartShuffle') ? shuffleInfo : null;
+
+// ---------------------------------------------------------------------------
+// Phone remote: what's playing goes to the app's little web server.
+
+var refreshRemoteRow; // set by the settings row (built earlier); no initial value here
+let remoteArt = { url: null, thumb: undefined };
+setInterval(() => {
+  if (!settings.get('remote') || !native?.appPrefs) return;
+  const t = clock.lyricTime;
+  const [line, next] = currentLines(t);
+  const pick = (k) => state.tagMeta[k] || state.ttmlMeta[k] || state.fileMeta[k] || '';
+  const p = playback();
+  let art;
+  if (remoteArt.url !== state.artUrl) {
+    remoteArt = { url: state.artUrl, thumb: undefined };
+    art = null;
+    if (state.artUrl) makeThumb(state.artUrl, 360).then((th) => { if (remoteArt.url === state.artUrl) remoteArt.thumb = th; }).catch(() => {});
+  } else if (remoteArt.thumb && !remoteArt.sent) { art = remoteArt.thumb; remoteArt.sent = true; }
+  native.appPrefs('remote-state', {
+    title: pick('title'), artist: pick('artist'), ...(art !== undefined ? { art } : {}),
+    line: line && { text: line.text, begin: line.begin, end: line.end, words: line.mode === 'word' ? line.words.map((w) => ({ text: w.text, begin: w.begin, end: w.end, spaceBefore: w.spaceBefore })) : [] },
+    next: next?.text || '', time: t, position: p.position, duration: Number.isFinite(p.duration) ? p.duration : 0,
+    playing: p.playing, message: state.model ? '' : 'No lyrics',
+  }).catch(() => {});
+}, 250);
+
 // Started fine (an in-app update that doesn't get here is rolled back), then
 // look for a newer version on your website.
 // Sent after the page's load event too: the app starts its 20 s check when
@@ -1540,4 +1746,4 @@ async function autoLyrics(token, knownDuration = 0) {
 }
 
 // Handle for debugging / scripting from the console.
-window.lyricPlayer = { lyricifyBg, motion, queue, libraryPanel, demo: loadDemo, followPc, pcState, get external() { return state.external; }, syncFolders, get cover() { return state.cover; }, audio, clock, renderer, ui, get background() { return background; }, amllBg, artworkBg, reactor, library, settings, loadTTMLText };
+window.lyricPlayer = { lyricifyBg, motion, queue, libraryPanel, demo: loadDemo, followPc, pcState, get external() { return state.external; }, syncFolders, get cover() { return state.cover; }, audio, clock, renderer, ui, get background() { return background; }, amllBg, artworkBg, reactor, fx, library, settings, loadTTMLText };

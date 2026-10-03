@@ -1,6 +1,8 @@
 // Player settings: schema, defaults and persistence (localStorage, per browser).
 // The settings sheet (settings-panel.js) is generated from SCHEMA.
 
+import { LANGUAGES, defaultLanguage } from './translate.js';
+
 const KEY = 'lyricplayer:settings';
 
 /**
@@ -16,6 +18,8 @@ export const SCHEMA = [
   { key: 'bloom', label: 'Bloom', hint: 'Glow around the line being sung', type: 'range', min: 0, max: 1, step: 0.01, def: 0.35, fmt: pct },
   { key: 'wordFade', label: 'Sweep softness', hint: 'Width of the soft edge as words light up', type: 'range', min: 0.1, max: 1.5, step: 0.05, def: 0.5, fmt: (v) => `${v.toFixed(2)}em` },
   { key: 'alignPosition', label: 'Focus position', hint: 'Where the current line sits, from the top', type: 'range', min: 0.1, max: 0.6, step: 0.01, def: 0.35, fmt: pct },
+  { key: 'lyricFont', label: 'Font', type: 'choice', def: 'default', options: [['default', 'Default'], ['rounded', 'Rounded'], ['serif', 'Serif'], ['mono', 'Mono'], ['playful', 'Playful']] },
+  { key: 'lyricColor', label: 'Colour', hint: 'Cover: a light colour taken from the album cover', type: 'choice', def: 'white', options: [['white', 'White'], ['cover', 'Cover'], ['warm', 'Warm'], ['pink', 'Pink'], ['mint', 'Mint'], ['sky', 'Sky'], ['lilac', 'Lilac']], select: true },
   { key: 'lineBlur', label: 'Blur other lines', type: 'toggle', def: true },
   { key: 'lineScale', label: 'Zoom current line', type: 'toggle', def: true },
   { key: 'springs', label: 'Spring motion', type: 'toggle', def: true },
@@ -23,6 +27,7 @@ export const SCHEMA = [
   { key: 'autoLyrics', label: 'Find lyrics automatically', hint: 'When a song has no lyrics, search every source and use the best match', type: 'toggle', def: true },
   { key: 'translation', label: 'Translation', type: 'toggle', def: false },
   { key: 'romanization', label: 'Romanization', type: 'toggle', def: true },
+  { key: 'translateTo', label: 'Translate lyrics to', hint: 'For ••• → Translate lyrics, when the lyrics have no translation', type: 'choice', def: defaultLanguage(), options: LANGUAGES, select: true },
   { key: 'lookupWriters', label: 'Find songwriters online', hint: 'When the lyrics don’t list who wrote the song, look it up on MusicBrainz and show it after the last line', type: 'toggle', def: true },
   { key: 'autoRoman', label: 'Romanize when missing', hint: 'Korean and Japanese kana are romanized here; lines with kanji or Chinese characters borrow NetEase or QQ Music’s romanization for the same song', type: 'toggle', def: true },
 
@@ -36,6 +41,12 @@ export const SCHEMA = [
   { key: 'bgFps', label: 'Frame rate', type: 'range', min: 15, max: 144, step: 1, def: 60, fmt: (v) => `${v} fps` },
   { key: 'bgStatic', label: 'Still background', hint: 'Stops the motion to save power', type: 'toggle', def: false },
   { key: 'macGlass', label: 'Liquid Glass window', hint: 'macOS 26: the window becomes real Liquid Glass with your desktop showing through, instead of the cover background', type: 'toggle', def: false, desktop: true, mac: true },
+
+  { section: 'Playback' },
+  { key: 'crossfade', label: 'Crossfade', hint: 'Your own songs fade into the next one', type: 'range', min: 0, max: 12, step: 1, def: 0, fmt: (v) => (v ? `${v} s` : 'Off') },
+  { key: 'levelVolume', label: 'Even out volume', hint: 'Quiet songs are turned up and loud ones down, so every song plays about as loud (your own songs)', type: 'toggle', def: false },
+  { key: 'karaoke', label: 'Karaoke', hint: 'Turns the lead vocal down on your own songs. Works best on songs with the voice in the middle; some echo of it stays', type: 'toggle', def: false },
+  { key: 'smartShuffle', label: 'Smart shuffle', hint: 'Shuffle plays songs you haven’t heard lately first and mixes up the artists', type: 'toggle', def: true },
 
   { section: 'Artwork' },
   { key: 'autoArt', label: 'Find covers automatically', hint: 'Looks up the song on Apple Music: animated cover, or the cover if the file has none', type: 'toggle', def: true },
@@ -51,7 +62,13 @@ export const SCHEMA = [
   { section: 'App', desktop: true },
   { key: 'tray', label: 'Keep running in the tray', hint: 'Closing the window leaves Lyric Player running, with an icon by the clock (Windows) or in the menu bar (Mac), still following your music. Quit from its menu there', type: 'toggle', def: false, desktop: true },
   { key: 'startup', label: 'Open when you sign in', type: 'toggle', def: false, desktop: true },
+  { key: 'hotkeys', label: 'Global shortcuts', hint: 'Control the music from any app, even when Lyric Player is in the tray', type: 'toggle', def: true, desktop: true },
+  { key: 'hotkeysInfo', type: 'custom', desktop: true },
   { key: 'startHidden', label: 'Start in the tray', hint: 'When it opens at sign-in, wait in the tray instead of opening the window', type: 'toggle', def: true, desktop: true },
+
+  { section: 'Phone remote', desktop: true },
+  { key: 'remote', label: 'Phone remote', hint: 'Control the music and see the lyrics on your phone, over your home Wi-Fi', type: 'toggle', def: false, desktop: true },
+  { key: 'remoteInfo', type: 'custom', desktop: true },
 
   { section: 'Discord', desktop: true },
   { key: 'discord', label: 'Discord Rich Presence', hint: 'Shows what you are playing on your Discord profile (the Discord app must be open)', type: 'toggle', def: false, desktop: true },
@@ -73,6 +90,7 @@ export const SCHEMA = [
 
   { section: 'Fun' },
   { key: 'emojiReactions', label: 'Emoji reactions', hint: 'Emoji float up when words like love, fire, money, stars or dance are sung', type: 'toggle', def: false },
+  { key: 'emojiWords', label: 'Your emoji words', hint: 'Add your own: word=emoji, separated by commas. Example: pizza=🍕, cat=🐈 😺', type: 'text', def: '', placeholder: 'pizza=🍕, cat=🐈', max: 400 },
 
   { section: 'Interface' },
   { key: 'layout', label: 'Layout', type: 'choice', def: 'standard', options: [['standard', 'Standard'], ['apple', 'Apple Music']] },

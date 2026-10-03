@@ -1,0 +1,48 @@
+/* Phone remote page (src/remote.js). */
+:root { color-scheme: dark; --pink: #fa586a; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: #111318; color: #fff; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Inter, Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+
+.r-bg { position: fixed; inset: -20%; background-size: cover; background-position: center; filter: blur(60px) saturate(1.6) brightness(0.55); transform: scale(1.2); transition: background-image .6s; }
+.r-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.55)); }
+.r-main {
+  position: relative; height: 100%; max-width: 520px; margin: 0 auto;
+  display: flex; flex-direction: column;
+  padding: max(20px, env(safe-area-inset-top)) 24px max(18px, env(safe-area-inset-bottom));
+}
+.r-art { position: relative; width: min(62vw, 300px, 34vh); aspect-ratio: 1; margin: 2vh auto 0; border-radius: 14px; overflow: hidden; background: rgba(255,255,255,.08); box-shadow: 0 20px 50px rgba(0,0,0,.45); flex: none; }
+.r-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.r-art-empty { position: absolute; inset: 0; display: grid; place-items: center; font-size: 64px; color: rgba(255,255,255,.3); }
+.r-meta { margin-top: 2.4vh; text-align: center; }
+.r-title { font-size: 21px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r-artist { margin-top: 2px; font-size: 16px; color: rgba(255,255,255,.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.r-lyrics { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 2vh 0; }
+.r-line { font-size: clamp(24px, 7.4vw, 34px); font-weight: 800; line-height: 1.18; letter-spacing: -0.02em; color: rgba(255,255,255,.95); }
+.r-line.in { animation: line-in .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes line-in { from { opacity: 0; transform: translateY(14px); } }
+.r-line .w {
+  background: linear-gradient(90deg, #fff var(--p, 0%), rgba(255,255,255,.35) calc(var(--p, 0%) + 0.01%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.r-next { font-size: clamp(17px, 5vw, 22px); font-weight: 700; line-height: 1.25; color: rgba(255,255,255,.35); }
+
+.r-progress { padding: 12px 0; touch-action: none; }
+.r-track { height: 5px; border-radius: 3px; background: rgba(255,255,255,.2); overflow: hidden; transition: height .15s; }
+.r-progress.drag .r-track { height: 9px; }
+.r-fill { height: 100%; width: 0; background: rgba(255,255,255,.9); }
+.r-times { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.5); font-variant-numeric: tabular-nums; margin-top: -4px; }
+
+.r-transport { display: flex; align-items: center; justify-content: space-evenly; margin: 2.2vh 0 1vh; }
+.r-btn { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; transition: transform .15s, background .15s; }
+.r-btn:active { transform: scale(.86); background: rgba(255,255,255,.12); }
+.r-btn svg { width: 40px; height: 30px; fill: #fff; }
+.r-play { width: 84px; height: 84px; }
+.r-play svg { width: 46px; height: 46px; }
+.r-extra { display: flex; justify-content: center; }
+.r-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; background: rgba(255,255,255,.12); font-size: 14px; font-weight: 600; }
+.r-pill:active { background: rgba(255,255,255,.22); }
+.r-pill svg { width: 20px; height: 20px; }
+.r-status { min-height: 18px; margin-top: 8px; text-align: center; font-size: 13px; color: rgba(255,255,255,.5); }

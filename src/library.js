@@ -94,6 +94,22 @@ export class Library {
     await this.tx('readwrite', async (s) => { for (const id of ids) s.delete(id); });
   }
 
+  /**
+   * Adds the lyrics' plain text to songs that don't have it yet (for search).
+   * readFile(path) reads a music folder's .ttml. Returns how many were added.
+   */
+  async addLyricsText(extract, readFile) {
+    const all = await this.tx('readonly', (s) => req(s.getAll()));
+    const todo = [];
+    for (const r of all) {
+      if (r.lyricsText != null || (!r.ttml && !r.ttmlPath)) continue;
+      const ttml = r.ttml || (readFile ? await readFile(r.ttmlPath).catch(() => null) : null);
+      if (typeof ttml === 'string') todo.push([r.id, { lyricsText: extract(ttml) }]);
+    }
+    await this.updateMany(todo);
+    return todo.length;
+  }
+
   async trim() {
     const songs = (await this.list()).filter((s) => s.stored);
     for (const s of songs.slice(MAX_SONGS)) await this.remove(s.id);

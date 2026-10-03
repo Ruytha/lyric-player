@@ -41,7 +41,26 @@ const WORDS = [
 
 const clean = (w) => w.toLowerCase().replace(/[’']/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
+// Your own words (Settings → Fun → Your emoji words): "word=emoji, word=emoji".
+let custom = new Map();
+
+/** Parses "pizza=🍕, cat=🐈 😺, rain=☔" into word → [emoji]. */
+export function parseCustomWords(text) {
+  const out = new Map();
+  for (const part of String(text || '').split(/[,;\n]+/)) {
+    const m = /^\s*([^=:]+?)\s*[=:]\s*(.+?)\s*$/.exec(part);
+    if (!m) continue;
+    const word = clean(m[1]).replace(/\s+/g, '');
+    const emoji = m[2].split(/\s+/).filter((e) => /\p{Extended_Pictographic}/u.test(e)).slice(0, 5);
+    if (word && emoji.length) out.set(word, emoji);
+  }
+  return out;
+}
+
+export function setCustomWords(text) { custom = parseCustomWords(text); }
+
 function emojiFor(word) {
+  if (custom.has(word)) return custom.get(word);
   for (const [re, list] of WORDS) if (re.test(word)) return list;
   return null;
 }
@@ -82,7 +101,10 @@ export class EmojiReactions {
     if (!this.on) this.layer.textContent = '';
   }
 
+  setCustomWords(text) { setCustomWords(text); if (this.model) this.setModel(this.model); }
+
   setModel(model) {
+    this.model = model;
     this.events = model && model.timing !== 'none' ? reactionEvents(model) : [];
     this.lastT = null;
   }
