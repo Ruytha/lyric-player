@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.5.1",
+    "date": "2026-10-03",
+    "notes": [
+      "Spicy Lyrics is no longer a lyrics source; lyrics come from Apple Music, AMLL, BiniLyrics, NetEase, QQ Music and LRCLIB as before."
+    ]
+  },
+  {
     "version": "2.4.1",
     "date": "2026-10-03",
     "notes": [
