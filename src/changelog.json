@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.10.4",
+    "date": "2026-10-03",
+    "notes": [
+      "The tall animated cover on the Now Playing screen is framed like the iPhone’s: you see nearly all of it, and it fades out just under the song title."
+    ]
+  },
+  {
     "version": "2.10.3",
     "date": "2026-10-03",
     "notes": [

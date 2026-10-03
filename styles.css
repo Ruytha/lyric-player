@@ -1592,10 +1592,13 @@ html.am-mode.now-playing .now-bg {
   display: block;
   position: absolute;
   left: 0; right: 0; top: 0;
-  height: 78%;
+  /* Framed like the iPhone: nearly the cover's full width, fading out just
+     under the title. Wide windows crop to 78% of the height. */
+  aspect-ratio: 2 / 3;
+  max-height: 78%;
   overflow: hidden;
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent 94%);
+  mask-image: linear-gradient(to bottom, #000 70%, transparent 94%);
   pointer-events: none;
 }
 .now-bg video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1s ease; }
