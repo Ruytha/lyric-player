@@ -1414,7 +1414,12 @@ startSystemMedia(!!settings.get('followPc'));
 
 // Started fine (an in-app update that doesn't get here is rolled back), then
 // look for a newer version on your website.
-native?.update?.('booted').catch(() => {});
+// Sent after the page's load event too: the app starts its 20 s check when
+// loading finishes, so a signal sent before that would be missed.
+const sayBooted = () => native?.update?.('booted').catch(() => {});
+sayBooted();
+if (document.readyState === 'complete') setTimeout(sayBooted, 500);
+else addEventListener('load', () => { setTimeout(sayBooted, 500); setTimeout(sayBooted, 5000); }, { once: true });
 setTimeout(() => showWhatsNew().catch(() => {}), 1500);
 if (native?.update && settings.get('autoUpdate') && !navigator.webdriver) {
   setTimeout(() => native.update('check', { site: updateSite(settings), auto: true }).catch(() => {}), 8000);

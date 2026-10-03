@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.6.1",
+    "date": "2026-10-03",
+    "notes": [
+      "Fixed updates not being used: the app sometimes thought a new version hadn’t started and went back to the old one."
+    ]
+  },
+  {
     "version": "2.6.0",
     "date": "2026-10-03",
     "notes": [

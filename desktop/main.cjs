@@ -329,12 +329,15 @@ function relayLastFm() {
 // The page asks; progress goes to every player window as 'update-status'.
 
 let bootTimer = null;
+let bootedThisLoad = false;
 
 /** An updated page that doesn't start within 20 s is rolled back. */
 function watchUpdatedPage(w) {
+  // The page can say it booted before loading finishes; remember that.
+  w.webContents.on('did-start-loading', () => { bootedThisLoad = false; });
   w.webContents.on('did-finish-load', () => {
     clearTimeout(bootTimer);
-    if (!webUpdate?.usingUpdate || process.env.LP_SELFTEST) return;
+    if (!webUpdate?.usingUpdate || process.env.LP_SELFTEST || bootedThisLoad) return;
     bootTimer = setTimeout(() => {
       if (webUpdate.markBad() && alive(w)) w.webContents.reloadIgnoringCache();
     }, 20000);
@@ -408,7 +411,7 @@ function relayUpdates() {
       const web = webUpdate?.version();
       return web && webUpdate.usingUpdate ? `${web} (app ${app.getVersion()})` : app.getVersion();
     }
-    if (kind === 'booted') { clearTimeout(bootTimer); return true; }
+    if (kind === 'booted') { bootedThisLoad = true; clearTimeout(bootTimer); return true; }
     if (kind === 'versions') return { current: webUpdate.version(), usingUpdate: webUpdate.usingUpdate, previous: webUpdate.previousVersion() };
     if (kind === 'rollback') {
       const v = await webUpdate.rollback();
