@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.11.1",
+    "date": "2026-10-04",
+    "notes": [
+      "The red, yellow and green window buttons work on Windows again (the window’s drag strip was catching the clicks).",
+      "Following Apple Music or Spotify: the lyrics no longer fall behind when the app re-sends an old position."
+    ]
+  },
+  {
     "version": "2.11.0",
     "date": "2026-10-03",
     "notes": [

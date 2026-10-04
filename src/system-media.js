@@ -72,6 +72,15 @@ export class SystemPlayback {
 
   update(raw) {
     const wasPlaying = this.playing;
+    const prev = this.raw;
+    // Some apps (Apple Music, Spotify) re-send the same old position with a
+    // fresh timestamp while the song plays on. Taken at face value that pulls
+    // the lyrics back to where the song was then; keep counting from the
+    // original report instead. A real seek changes the position.
+    if (raw && prev && wasPlaying && raw.status === 'Playing' && trackKey(raw) === trackKey(prev)
+        && Math.abs((raw.position || 0) - (prev.position || 0)) < 0.05 && raw.updated > prev.updated) {
+      raw = { ...raw, position: prev.position, updated: prev.updated };
+    }
     this.raw = raw;
     if (wasPlaying && !this.playing) this.pausedAt = Date.now();
     if (this.playing) this.pausedAt = null;

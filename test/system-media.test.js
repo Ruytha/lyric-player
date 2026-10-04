@@ -41,3 +41,16 @@ test('position runs on between the app\'s reports, and stops when paused', () =>
   p.update({ status: 'Playing', position: 199, updated: 1000, duration: 200, rate: 1 });
   assert.equal(p.position(9000), 200, 'never past the end');
 });
+
+test('a stale position re-sent with a new timestamp does not pull the lyrics back', () => {
+  const p = new SystemPlayback();
+  const song = { app: 'AppleMusic', title: 'Beat It', artist: 'Michael Jackson', duration: 258, rate: 1 };
+  p.update({ ...song, status: 'Playing', position: 20, updated: 1000 });
+  p.update({ ...song, status: 'Playing', position: 20, updated: 19000 }); // same position, 18 s later
+  assert.equal(p.position(19000), 38, 'still 18 s on');
+  p.update({ ...song, status: 'Playing', position: 120, updated: 20000 }); // a real seek
+  assert.equal(p.position(20000), 120);
+  p.update({ ...song, status: 'Paused', position: 125, updated: 25000 });
+  p.update({ ...song, status: 'Playing', position: 125, updated: 60000 }); // resumed after a pause
+  assert.equal(p.position(60000), 125, 'resuming starts from where it paused');
+});

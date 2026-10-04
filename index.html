@@ -15,11 +15,6 @@
   <script type="module" src="src/main.js"></script>
 </head>
 <body>
-  <div class="win-controls" id="winControls" hidden>
-    <button class="wc close" data-win="close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.6 3.6l4.8 4.8M8.4 3.6 3.6 8.4"/></svg></button>
-    <button class="wc min" data-win="minimize" aria-label="Minimize" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.8 6h6.4"/></svg></button>
-    <button class="wc zoom" data-win="zoom" aria-label="Full screen (Alt+click to maximize)" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path class="fill" d="M3.3 4.1v4.6h4.6zM8.7 7.9V3.3H4.1z"/></svg></button>
-  </div>
 
 
   <div class="bg" id="bg" aria-hidden="true"></div>
@@ -274,5 +269,11 @@
   <input type="file" id="audioInput" accept=".mp3,.m4a,.aac,.flac,.ogg,.opus,.wav,audio/*" hidden>
   <input type="file" id="ttmlInput" accept=".ttml,.xml,application/ttml+xml,application/xml,text/xml" hidden>
   <audio id="audio" preload="auto"></audio>
+  <!-- Last in the page: Windows decides drag vs click from the last app-region on top, so the buttons must come after the drag strip (.fp-top). -->
+  <div class="win-controls" id="winControls" hidden>
+    <button class="wc close" data-win="close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.6 3.6l4.8 4.8M8.4 3.6 3.6 8.4"/></svg></button>
+    <button class="wc min" data-win="minimize" aria-label="Minimize" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.8 6h6.4"/></svg></button>
+    <button class="wc zoom" data-win="zoom" aria-label="Full screen (Alt+click to maximize)" tabindex="-1"><svg viewBox="0 0 12 12" aria-hidden="true"><path class="fill" d="M3.3 4.1v4.6h4.6zM8.7 7.9V3.3H4.1z"/></svg></button>
+  </div>
 </body>
 </html>
