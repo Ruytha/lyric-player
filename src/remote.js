@@ -77,7 +77,7 @@ function apply(next) {
   s = next; at = performance.now();
   $('title').textContent = s.title || 'Not playing';
   $('artist').textContent = s.artist || (s.title ? '' : 'Play something on your PC');
-  document.title = s.title ? `${s.title} — Lyric Player` : 'Lyric Player remote';
+  document.title = s.title ? `${s.title} · Lyric Player` : 'Lyric Player remote';
   $('play').innerHTML = s.playing ? ICON.pause : ICON.play;
   $('play').setAttribute('aria-label', s.playing ? 'Pause' : 'Play');
   if (s.art !== artKey) {

@@ -138,10 +138,20 @@ export function glassAll(selector) {
   for (const el of document.querySelectorAll(selector)) glass(el);
 }
 
-export function setGlassEnabled(on) {
+// The system's "reduce transparency" setting wins over the app's Liquid Glass setting.
+const reducedTransparency = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-transparency: reduce)') : null;
+let wanted = false;
+function applyGlass() {
+  const on = wanted && !reducedTransparency?.matches;
   enabled = on;
   document.documentElement.classList.toggle('glass', on);
   document.documentElement.classList.toggle('lg-supported', on && SUPPORTED);
+}
+reducedTransparency?.addEventListener?.('change', applyGlass);
+
+export function setGlassEnabled(on) {
+  wanted = on;
+  applyGlass();
 }
 
 export const glassSupported = SUPPORTED;

@@ -82,7 +82,7 @@ const PERIODS = [
   ['all', 'All time', () => 0],
 ];
 
-const hourName = (h) => (h == null ? '—' : new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric' }));
+const hourName = (h) => (h == null ? 'Not yet' : new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric' }));
 const timeOfDay = (h) => (h == null ? '' : h < 5 ? 'a night owl' : h < 12 ? 'a morning person' : h < 17 ? 'an afternoon listener' : h < 21 ? 'an evening listener' : 'a night owl');
 
 /** The stats dialog. */

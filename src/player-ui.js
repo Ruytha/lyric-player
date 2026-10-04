@@ -60,7 +60,7 @@ export class PlayerUI {
     this.el.artist.firstElementChild.textContent = artist;
     this.el.title.title = title;
     this.el.artist.title = artist;
-    document.title = `${title} — ${artist}`;
+    document.title = `${title} · ${artist}`;
   }
 
   setArtwork(url) {
@@ -85,7 +85,7 @@ export class PlayerUI {
 
   setTranslation(available, on) {
     this.el.transItem.hidden = !available;
-    this.el.transItem.querySelector('.mi-label').textContent = on ? 'Hide translation' : 'Show translation';
+    this.el.transItem.querySelector('.mi-label').textContent = on ? 'Hide Translation' : 'Show Translation';
   }
 
   // -------------------------------------------------------------------------

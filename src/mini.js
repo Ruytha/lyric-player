@@ -33,7 +33,7 @@ native?.onMiniState((s) => {
     $('art').style.backgroundImage = v;
     $('bg').style.backgroundImage = v;
   }
-  $('meta').textContent = [s.title, s.artist].filter(Boolean).join(' — ');
+  $('meta').textContent = [s.title, s.artist].filter(Boolean).join(' · ');
   $('next').textContent = s.next || '';
   $('playBtn').innerHTML = s.playing
     ? '<svg viewBox="0 0 24 24"><path d="M6 4.5h4v15H6zM14 4.5h4v15h-4z"/></svg>'

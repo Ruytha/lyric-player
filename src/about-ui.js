@@ -84,7 +84,7 @@ export function buildAboutRow(row, { settings, toast }) {
       el.querySelector('.src-dot').className = `src-dot ${r.ok ? 'ok' : r.skipped ? 'skip' : 'fail'}`;
       el.querySelector('.src-detail').textContent = r.skipped ? r.detail : r.ok ? `${r.ms} ms` : r.detail;
     });
-    for (const r of lastSources) if (!r.ok && !r.skipped) diagnostics.note(`source check failed: ${r.name} — ${r.detail}`);
+    for (const r of lastSources) if (!r.ok && !r.skipped) diagnostics.note(`source check failed: ${r.name}: ${r.detail}`);
     b.disabled = false;
   });
 

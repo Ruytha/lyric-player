@@ -29,7 +29,7 @@ export const diagnostics = {
     ];
     if (sources) {
       lines.push('', 'Sources:');
-      for (const r of sources) lines.push(`  ${r.ok ? 'OK  ' : r.skipped ? 'SKIP' : 'FAIL'} ${r.name}${r.ms != null ? ` (${r.ms} ms)` : ''}${r.detail ? ` — ${r.detail}` : ''}`);
+      for (const r of sources) lines.push(`  ${r.ok ? 'OK  ' : r.skipped ? 'SKIP' : 'FAIL'} ${r.name}${r.ms != null ? ` (${r.ms} ms)` : ''}${r.detail ? `: ${r.detail}` : ''}`);
     }
     lines.push('', 'Recent events:');
     for (const e of log.slice(-60)) lines.push(`  ${e.t} ${e.level === 'error' ? 'ERR ' : '    '}${e.text}`);

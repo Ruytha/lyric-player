@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.12.0",
+    "date": "2026-10-04",
+    "notes": [
+      "Easier to read: hints, song lengths, dates and other small text are brighter, and panels are darker over bright covers, so everything stays readable over any album.",
+      "Keyboard: every control now shows where the focus is, and Ctrl+, (Cmd+, on a Mac) opens Settings.",
+      "Follows your system settings: with Reduce Transparency the glass and blur turn off, with Increase Contrast text and unlit lyrics get brighter.",
+      "Liquid Glass is now on the player buttons, menus and panels only; the small controls inside panels are solid.",
+      "Menu items use title-style capitals, like Apple Music."
+    ]
+  },
+  {
     "version": "2.11.3",
     "date": "2026-10-04",
     "notes": [

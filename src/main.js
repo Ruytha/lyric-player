@@ -323,7 +323,7 @@ function applyGlassWindow() {
   document.documentElement.classList.toggle('glass-window', on);
 }
 native?.glass?.('supported').then((ok) => { glassWindowOk = !!ok; applyGlassWindow(); }).catch(() => {});
-glassAll('.round, .ibtn, .menu, .sheet, .qtoggle, .stepper button, .seg, .sheet-btn, .ls-panel');
+glassAll('.round, .ibtn, .menu, .sheet, .ls-panel');
 
 // ---------------------------------------------------------------------------
 // Apple Music Mode: a phone-shaped portrait player like the iPhone lyrics view.
@@ -801,7 +801,7 @@ function setLyricsSource(source) {
   if (!item) return;
   const sub = item.querySelector('.mi-sub');
   const online = source && !OWN_SOURCES[source];
-  item.querySelector('.mi-label').textContent = online ? 'Find other lyrics…' : 'Find lyrics online…';
+  item.querySelector('.mi-label').textContent = online ? 'Find Other Lyrics…' : 'Find Lyrics Online…';
   sub.textContent = online ? `Now from ${sourceLabel(source)}` : '';
   sub.hidden = !online;
 }
@@ -1017,7 +1017,7 @@ function loadTTMLText(text, name, { save = true, source = null } = {}) {
   if (roman?.needsLookup && settings.get('romanization')) borrowRomanization(model);
   ui.setTranslation(model.hasTranslation, state.showTranslation);
   updateLyricItems();
-  if (model.timing === 'none') toast('These lyrics have no timing — showing static lyrics.');
+  if (model.timing === 'none') toast('These lyrics have no timing, so they don’t scroll with the song.');
   if (save) {
     if (state.external) savePcLyrics(state.external.key, { ttml: text, name, source });
     else if (state.songId) { remember({ ttmlName: name, ttml: text, lyricsSource: source, lyricsText: lyricsPlainText(text) }); autoCover(); }
@@ -1142,13 +1142,15 @@ function updateMediaSession(title, artist) {
 audio.addEventListener('volumechange', savePrefs);
 audio.addEventListener('error', () => {
   if (!audio.src) return;
-  toast(`Can't play ${state.audioName || 'this file'} — the format may not be supported by this browser.`, { error: true });
+  toast(`Can’t play ${state.audioName || 'this file'}. This browser may not support its format.`, { error: true });
 });
 
 // ---------------------------------------------------------------------------
 // Keyboard
 
 addEventListener('keydown', (e) => {
+  // Ctrl+, (Cmd+, on a Mac): Settings, as in every desktop app.
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === ',') { e.preventDefault(); settingsPanel.toggle(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   const key = e.key;
@@ -1268,7 +1270,7 @@ async function openSong(id, { autoplay = false } = {}) {
     if (token !== state.loadToken) return false;
   }
   if (ttml) loadTTMLText(ttml, ttmlName || 'lyrics.ttml', { save: false, source: lyricsSource });
-  else { state.model = null; state.ttmlName = null; state.ttmlMeta = {}; renderer.setLyrics(null, settings.get('autoLyrics') ? 'Looking for lyrics…' : 'No lyrics saved for this song — drop a .ttml file, or press / to find them online'); }
+  else { state.model = null; state.ttmlName = null; state.ttmlMeta = {}; renderer.setLyrics(null, settings.get('autoLyrics') ? 'Looking for lyrics…' : 'No lyrics saved for this song. Drop a .ttml file, or press / to find them online.'); }
   if (rec.path) setAudioSource(mediaUrl(rec.path), rec.audioName || rec.path.split(/[\\/]/).pop(), { owned: false });
   else setAudioSource(URL.createObjectURL(rec.audio), rec.audioName || 'audio', { owned: true });
   if (rec.path && rec.title) { state.tagMeta = { title: rec.title, artist: rec.artist || null, album: rec.album || null }; applyMeta(); }
@@ -1287,7 +1289,7 @@ async function restoreLastSong() {
   const songs = await library.list().catch(() => []);
   if (!songs.length) return;
   const last = (queue.current && songs.find((s) => s.id === queue.current)) || songs[0];
-  if (await openSong(last.id)) toast(`Welcome back — ${last.title || last.audioName}`, { ms: 2000 });
+  if (await openSong(last.id)) toast(`Welcome back: ${last.title || last.audioName}`, { ms: 2000 });
 }
 
 // ---------------------------------------------------------------------------
@@ -1511,7 +1513,7 @@ async function pcLyrics(token, info, duration) {
     const found = await fetchBestLyrics(results, { title: info.title, artist: info.artist, duration: duration > 0 ? duration : 0 }, getTtml,
       (r, e) => diagnostics.error(`pc lyrics (${r.source}, trying the next)`, e));
     if (token !== state.loadToken) return;
-    if (!found) { renderer.setLyrics(null, 'No lyrics found for this song — press / to search yourself'); done('No lyrics found. Press / in the player to search.'); return; }
+    if (!found) { renderer.setLyrics(null, 'No lyrics found for this song. Press / to search yourself.'); done('No lyrics found. Press / in the player to search.'); return; }
     const { best, ttml } = found;
     if (state.model) return;
     const safe = `${best.artists[0] ? `${best.artists[0]} - ` : ''}${best.title}`.replace(/[\\/:*?"<>|]+/g, ' ');
@@ -1521,7 +1523,7 @@ async function pcLyrics(token, info, duration) {
       diagnostics.note(`pc lyrics: ${best.source} for "${info.title}"`);
     }
   } catch (e) {
-    if (token === state.loadToken) { renderer.setLyrics(null, 'Couldn’t look for lyrics (offline?) — press / to search'); done('Couldn’t look for lyrics'); }
+    if (token === state.loadToken) { renderer.setLyrics(null, 'Couldn’t look for lyrics. Are you offline? Press / to search.'); done('Couldn’t look for lyrics'); }
     diagnostics.error('pc lyrics', e);
   }
 }
@@ -1878,7 +1880,7 @@ async function autoLyrics(token, knownDuration = 0) {
   if (!settings.get('autoLyrics') || !state.songId || state.lyricsFor === state.songId && state.model) return;
   const id = state.songId;
   const info = songInfo();
-  if (!info.title) { renderer.setLyrics(null, 'No lyrics saved for this song — drop a .ttml file, or press / to find them online'); return; }
+  if (!info.title) { renderer.setLyrics(null, 'No lyrics saved for this song. Drop a .ttml file, or press / to find them online.'); return; }
   const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : knownDuration || 0;
   try {
     const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable() });
@@ -1887,18 +1889,18 @@ async function autoLyrics(token, knownDuration = 0) {
       (r, e) => diagnostics.error(`auto lyrics (${r.source}, trying the next)`, e));
     if (token !== state.loadToken || id !== state.songId) return;
     if (!found) {
-      renderer.setLyrics(null, 'No lyrics found for this song — drop a .ttml file, or press / to search yourself');
+      renderer.setLyrics(null, 'No lyrics found for this song. Drop a .ttml file, or press / to search yourself.');
       return;
     }
     const { best, ttml } = found;
     if (token !== state.loadToken || id !== state.songId || (state.lyricsFor === id && state.model)) return;
     const safe = `${best.artists[0] ? `${best.artists[0]} - ` : ''}${best.title}`.replace(/[\\/:*?"<>|]+/g, ' ');
     if (loadTTMLText(ttml, `${safe}.ttml`, { source: best.source })) {
-      toast(`Lyrics found on ${SOURCE_NAMES[best.source] || best.source} — press / to pick different ones`, { ms: 3200 });
+      toast(`Lyrics found on ${SOURCE_NAMES[best.source] || best.source}. Press / to pick different ones.`, { ms: 3200 });
       diagnostics.note(`auto lyrics: ${best.source} for "${info.title}"`);
     }
   } catch (e) {
-    if (token === state.loadToken) renderer.setLyrics(null, 'Couldn’t look for lyrics (offline?) — press / to search');
+    if (token === state.loadToken) renderer.setLyrics(null, 'Couldn’t look for lyrics. Are you offline? Press / to search.');
     diagnostics.error('auto lyrics', e);
   }
 }
