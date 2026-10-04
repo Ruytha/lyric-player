@@ -5,214 +5,273 @@
   <base href="/download/lyricviewer/">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Lyric Player · Download</title>
-  <meta name="description" content="Lyric Player: Apple Music–style synced lyrics for your music and for Spotify and Apple Music. Free for Windows and Mac.">
-  <meta name="theme-color" content="#0d0d12">
+  <meta name="description" content="Lyric Player: synced lyrics that light up word by word, for your own music and for Spotify and Apple Music. Free for Windows.">
+  <meta name="theme-color" content="#0d0c10">
+  <meta property="og:title" content="Lyric Player">
+  <meta property="og:description" content="Synced lyrics that light up word by word, for your own music and for Spotify and Apple Music.">
+  <meta property="og:image" content="https://files.ruytha.dev/download/lyricviewer/hero-poster.jpg">
   <link rel="icon" href="icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,700..900&display=swap">
+  <!--
+    Website redesign (audit 002, all 13 findings).
+    Direction: the owner's direction for Lyric Player's showcase (audit 001): near-black, one
+    colour wash taken from the song on screen, big wide Archivo words, real footage of the app.
+    Reasons (R-31):
+    - Colour: off-black base so the app footage carries the colour; one static wash in the demo
+      cover's navy, because the player tints itself from the cover. The app's pink (#fa586a) is
+      the one accent and is used only on the download button, the one action that matters.
+    - Type: Archivo wide/black for the few big words (broad letters say a lot with little text,
+      as in the video); the system face (SF Pro, Segoe UI Variable) for reading, the same face as
+      the app and the docs, so the three read as one product.
+    - Motif: headlines light up like a sung line, bright words then dimmed ones.
+    - Layout: content first. Hero words, the player itself, then features as alternating rows
+      with real screenshots where a picture explains more than words, and a plain list for the
+      rest. Download and changelog are lists, not card grids.
+    - Shape: 12 px radius on controls, 16 px on media, nothing pill-shaped; no shadows or glow;
+      a 1 px hairline separates screenshots from the background.
+    - Media: the built-in demo song only, so no third-party music or covers on a public page.
+  -->
   <style>
     :root {
-      --bg: #0d0d12;
-      --panel: rgba(255, 255, 255, 0.055);
-      --panel-line: rgba(255, 255, 255, 0.1);
-      --text: #f5f5f7;
-      --muted: rgba(245, 245, 247, 0.62);
-      --faint: rgba(245, 245, 247, 0.4);
-      --accent: #fa2d48;
-      --accent-2: #ff6a7d;
-      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif;
+      --bg: #0d0c10;
+      --text: #f4f3f6;
+      --text-2: rgba(244, 243, 246, 0.72);
+      --dim: rgba(244, 243, 246, 0.5);
+      --line: rgba(244, 243, 246, 0.12);
+      --raise: rgba(244, 243, 246, 0.05);
+      --accent: #fa586a;
+      --link: #8ab4ff;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      --display: "Archivo", -apple-system, "Segoe UI Variable Display", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.5; overflow-x: hidden; }
-    a { color: inherit; }
-    .wrap { width: min(1120px, 100% - 32px); margin: 0 auto; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    body {
+      margin: 0; color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+      background: radial-gradient(1100px 700px at 12% -8%, rgba(46, 78, 150, 0.42), rgba(46, 78, 150, 0) 70%), var(--bg);
+    }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    :focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: 6px; }
+    .wrap { width: min(1160px, 100% - 32px); margin: 0 auto; }
+    .skip { position: absolute; left: -999px; top: 8px; background: var(--bg); color: var(--text); padding: 10px 14px; z-index: 5; }
+    .skip:focus { left: 8px; }
 
-    /* Moving colour behind the top, like the player's background */
-    .glow { position: absolute; inset: 0 0 auto; height: 980px; overflow: hidden; pointer-events: none; z-index: 0; }
-    .glow i { position: absolute; width: 620px; height: 620px; border-radius: 50%; filter: blur(110px); opacity: 0.55; animation: drift 26s ease-in-out infinite alternate; }
-    .glow i:nth-child(1) { background: #fa2d48; left: -140px; top: -120px; }
-    .glow i:nth-child(2) { background: #7b3ff2; right: -160px; top: 40px; animation-duration: 32s; animation-delay: -8s; }
-    .glow i:nth-child(3) { background: #ff9f0a; left: 32%; top: 300px; width: 460px; height: 460px; opacity: 0.32; animation-duration: 38s; }
-    .glow::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, var(--bg)); }
-    @keyframes drift { to { transform: translate(90px, 70px) scale(1.15) rotate(25deg); } }
-    @media (prefers-reduced-motion: reduce) { .glow i { animation: none; } }
+    /* Top bar: the same as the docs */
+    .topbar { display: flex; align-items: center; gap: 24px; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 600; font-size: 18px; }
+    .brand:hover { text-decoration: none; }
+    .brand img { width: 28px; height: 28px; border-radius: 7px; }
+    .topbar nav { margin-left: auto; display: flex; gap: 24px; font-size: 15px; }
+    .topbar nav a { color: var(--text-2); }
+    .topbar nav a:hover { color: var(--text); text-decoration: none; }
 
-    header, main, footer { position: relative; z-index: 1; }
-    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; font-size: 17px; }
-    .brand img { width: 30px; height: 30px; border-radius: 8px; }
-    .navlinks { display: flex; gap: 22px; font-size: 14px; }
-    .navlinks a { text-decoration: none; color: var(--muted); }
-    .navlinks a:hover { color: var(--text); }
+    /* Hero */
+    .hero { padding: 72px 0 0; }
+    .k { font-family: var(--display); font-weight: 900; font-stretch: 118%; letter-spacing: -0.035em; line-height: 0.95; margin: 0; }
+    .k .dim { color: var(--dim); }
+    .hero h1 { font-size: clamp(48px, 8.4vw, 116px); max-width: 11ch; }
+    .lede { font-size: clamp(18px, 2vw, 21px); color: var(--text-2); max-width: 34em; margin: 28px 0 0; }
+    .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 26px; margin-top: 34px; }
+    .btn { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 24px; border-radius: 12px; font-weight: 600; font-size: 17px; color: #1a0b0e; background: var(--accent); transition: background .2s, transform .15s; }
+    .btn:hover { background: #ff7383; text-decoration: none; }
+    .btn:active { transform: translateY(1px); }
+    .btn svg { width: 18px; height: 18px; fill: currentColor; }
+    .btn[aria-disabled="true"] { background: var(--raise); color: var(--text-2); pointer-events: none; }
+    .meta { margin: 14px 0 0; font-size: 15px; color: var(--text-2); }
 
-    .hero { text-align: center; padding: 64px 0 40px; }
-    .hero .icon { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 20px 60px rgba(250, 45, 72, 0.35), 0 0 0 1px rgba(255,255,255,0.08); }
-    h1 { font-size: clamp(40px, 7vw, 76px); line-height: 1.04; letter-spacing: -0.035em; margin: 26px 0 16px; font-weight: 800; }
-    h1 .grad { background: linear-gradient(90deg, #fff, #ffb3bd 45%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .lede { font-size: clamp(17px, 2.2vw, 21px); color: var(--muted); max-width: 640px; margin: 0 auto; }
-    .cta { margin-top: 34px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 999px; font-weight: 600; font-size: 16px; text-decoration: none; border: 0; cursor: pointer; font-family: inherit; transition: transform .15s, background .2s, opacity .2s; }
-    .btn:active { transform: scale(0.97); }
-    .btn svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
-    .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 10px 30px rgba(250, 45, 72, 0.35); }
-    .btn-primary:hover { background: #ff4560; }
-    .btn-ghost { background: rgba(255, 255, 255, 0.1); color: var(--text); }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.16); }
-    .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; box-shadow: none; }
-    .meta { margin-top: 14px; font-size: 13px; color: var(--faint); }
+    .media { margin: 64px 0 0; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #10172a; }
+    .media video, .media img { display: block; width: 100%; height: auto; }
 
-    .shot { margin: 56px auto 0; max-width: 1000px; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08); background: #111; }
-    .shot img, .shot video { display: block; width: 100%; height: auto; }
+    /* Sections */
+    section { padding: 112px 0 0; }
+    h2.k { font-size: clamp(36px, 5.4vw, 68px); margin-bottom: 18px; }
+    .sub { color: var(--text-2); max-width: 34em; margin: 0; }
 
-    section { padding: 72px 0 0; }
-    h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -0.025em; margin: 0 0 10px; line-height: 1.1; }
-    .sub { color: var(--muted); margin: 0 0 30px; max-width: 640px; }
+    /* What it does: one wide statement, two alternating rows with pictures, then a plain list */
+    .statement { font-family: var(--display); font-weight: 800; font-stretch: 112%; letter-spacing: -0.02em; font-size: clamp(26px, 3.4vw, 40px); line-height: 1.12; max-width: 24em; margin: 40px 0 0; }
+    .statement .dim { color: var(--dim); }
+    .row { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 56px; align-items: center; margin-top: 88px; }
+    .row.flip { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); }
+    .row.flip .row-media { order: 2; display: flex; justify-content: center; }
+    .row-media img { display: block; width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--line); }
+    .row.flip .row-media img { width: min(100%, 340px); border-radius: 28px; }
+    .row h3 { font-family: var(--display); font-weight: 800; font-stretch: 110%; font-size: clamp(26px, 2.6vw, 34px); letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 14px; }
+    .row p { color: var(--text-2); margin: 0 0 12px; max-width: 30em; }
+    .also { margin-top: 96px; padding-top: 28px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; }
+    .also h3 { margin: 0; font-size: 17px; font-weight: 600; }
+    .also ul { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 40px; }
+    .also li { break-inside: avoid; margin: 0 0 14px; color: var(--text-2); }
+    .also li b { display: block; color: var(--text); font-weight: 600; }
+    .also-more { grid-column: 2; margin: 0; }
 
-    .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-    .card { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 22px; padding: 26px; backdrop-filter: blur(20px); }
-    .card.mine { border-color: rgba(250, 45, 72, 0.55); box-shadow: 0 0 0 1px rgba(250, 45, 72, 0.25) inset; }
-    .card-top { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
-    .os { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,255,255,0.08); }
-    .os svg { width: 24px; height: 24px; fill: #fff; }
-    .card h3 { margin: 0; font-size: 22px; }
-    .badge { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--accent-2); background: rgba(250, 45, 72, 0.14); padding: 4px 10px; border-radius: 999px; }
-    .req { color: var(--faint); font-size: 14px; margin: 4px 0 18px; }
-    .dl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.05); text-decoration: none; margin-top: 10px; transition: background .2s; }
-    .dl:hover { background: rgba(255,255,255,0.1); }
-    .dl b { display: block; font-size: 15px; }
-    .dl small { color: var(--faint); font-size: 13px; }
-    .dl .go { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); }
-    .dl .go svg { width: 16px; height: 16px; fill: #fff; }
-    .dl.soon { pointer-events: none; opacity: 0.55; }
-    .dl.soon .go { background: rgba(255,255,255,0.15); }
-    .note { margin-top: 16px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--panel-line); padding-top: 14px; }
-    .note summary { cursor: pointer; color: var(--text); font-weight: 600; }
-    .note ol { padding-left: 18px; margin: 8px 0 0; }
-    .note li + li { margin-top: 4px; }
-    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12.5px; background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 6px; word-break: break-all; }
+    /* Download */
+    .platforms { margin-top: 40px; border-top: 1px solid var(--line); }
+    .platform { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; padding: 32px 0; border-bottom: 1px solid var(--line); }
+    .platform h3 { margin: 0; font-size: 24px; font-weight: 700; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .here { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .req { color: var(--text-2); font-size: 15px; margin: 6px 0 0; }
+    .files { display: grid; gap: 10px; }
+    .dl { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 64px; padding: 12px 18px; border-radius: 12px; background: var(--raise); border: 1px solid var(--line); color: var(--text); transition: background .2s, border-color .2s; }
+    .dl:hover { text-decoration: none; background: rgba(244, 243, 246, 0.09); border-color: rgba(244, 243, 246, 0.22); }
+    .dl b { display: block; font-size: 17px; }
+    .dl small { color: var(--text-2); font-size: 15px; }
+    .dl svg { width: 20px; height: 20px; fill: currentColor; flex: none; }
+    .platform.mine .dl:first-child { border-color: rgba(250, 88, 106, 0.6); }
+    .soon-note { color: var(--text-2); margin: 0; }
+    details { margin-top: 14px; color: var(--text-2); font-size: 15px; max-width: 40em; }
+    summary { cursor: pointer; color: var(--text); font-weight: 600; padding: 6px 0; }
+    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 14px; background: var(--raise); padding: 2px 6px; border-radius: 6px; }
 
-    .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-    .feature { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 18px; padding: 22px; }
-    .feature .em { font-size: 26px; line-height: 1; }
-    .feature h3 { margin: 12px 0 6px; font-size: 17px; }
-    .feature p { margin: 0; color: var(--muted); font-size: 14.5px; }
+    /* What's new */
+    .changes { margin-top: 40px; border-top: 1px solid var(--line); }
+    .changes article { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; padding: 26px 0; border-bottom: 1px solid var(--line); }
+    .changes h3 { margin: 0; font-size: 20px; }
+    .changes h3 span { display: block; font-size: 15px; font-weight: 400; color: var(--text-2); margin-top: 2px; }
+    .changes ul { margin: 0; padding-left: 20px; color: var(--text-2); max-width: 40em; }
+    .changes li + li { margin-top: 8px; }
+    .loading { color: var(--text-2); padding: 26px 0; margin: 0; }
 
-    .changes { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 22px; padding: 6px 26px; }
-    .changes article { padding: 20px 0; }
-    .changes article + article { border-top: 1px solid var(--panel-line); }
-    .changes h3 { margin: 0 0 8px; font-size: 18px; display: flex; gap: 12px; align-items: baseline; }
-    .changes h3 span { font-size: 13px; color: var(--faint); font-weight: 500; }
-    .changes ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
-    .changes li + li { margin-top: 6px; }
-
-    footer { padding: 80px 0 48px; color: var(--faint); font-size: 13px; text-align: center; }
-    footer p { margin: 6px 0; }
+    footer { padding: 120px 0 56px; color: var(--text-2); font-size: 15px; }
+    footer p { margin: 6px 0; max-width: 46em; }
 
     @media (max-width: 820px) {
-      .cards, .features { grid-template-columns: minmax(0, 1fr); }
-      .navlinks { display: none; }
-      .hero { padding-top: 36px; }
+      .topbar nav { gap: 16px; }
+      .topbar nav .wide { display: none; }
+      .hero { padding-top: 40px; }
+      .media { margin-top: 44px; }
+      section { padding-top: 80px; }
+      .row, .row.flip { grid-template-columns: minmax(0, 1fr); gap: 28px; margin-top: 64px; }
+      .row.flip .row-media { order: 0; }
+      .also, .platform, .changes article { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+      .also ul { columns: 1; }
+      .also-more { grid-column: 1; }
     }
   </style>
 </head>
 <body>
-  <div class="glow" aria-hidden="true"><i></i><i></i><i></i></div>
-
-  <header class="wrap">
-    <nav>
-      <a class="brand" href="#"><img src="icon.png" alt=""> Lyric Player</a>
-      <div class="navlinks">
-        <a href="#features">Features</a>
-        <a href="#download">Download</a>
-        <a href="#whats-new">What’s new</a>
-        <a href="/">Open in your browser</a>
-      </div>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="wrap topbar">
+    <a class="brand" href="/download/lyricviewer/"><img src="icon.png" alt=""> Lyric Player</a>
+    <nav aria-label="Site">
+      <a href="#download">Download</a>
+      <a href="/docs/lyricviewer/">Docs</a>
+      <a class="wide" href="#whats-new">What’s new</a>
+      <a class="wide" href="/">Open in your browser</a>
     </nav>
   </header>
 
-  <main class="wrap">
+  <main class="wrap" id="main">
     <div class="hero">
-      <img class="icon" src="icon.png" alt="Lyric Player icon">
-      <h1>Every word,<br><span class="grad">right on time.</span></h1>
-      <p class="lede">Apple Music–style synced lyrics for the songs you play: your own music, or whatever’s playing in Spotify and Apple Music. Free for Windows and Mac.</p>
-      <div class="cta">
-        <a class="btn btn-primary" id="mainDl" href="#download">
+      <h1 class="k">Lyrics that light up, <span class="dim">word by word.</span></h1>
+      <p class="lede">Synced lyrics for the songs you play, the way Apple Music shows them: your own music, or whatever’s playing in Spotify and Apple Music on your PC.</p>
+      <div class="actions">
+        <a class="btn" id="mainDl" href="#download">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg>
           <span>Download</span>
         </a>
-        <a class="btn btn-ghost" href="#download">All downloads</a>
+        <a href="/">Or open it in your browser</a>
       </div>
-      <p class="meta" id="metaLine">Version 2.3.0 · Free</p>
+      <p class="meta" id="metaLine">Free · Windows 10 and 11</p>
+      <div class="media">
+        <video src="hero.mp4" poster="hero-poster.jpg" width="1600" height="1000" autoplay muted loop playsinline preload="metadata" aria-label="The player with the demo song: the line being sung lights up word by word, the next lines wait dimmed"></video>
+      </div>
     </div>
-    <div class="shot" id="shot"><video src="promo.mp4" poster="promo-poster.jpg" width="1920" height="1080" autoplay muted loop playsinline preload="metadata" aria-label="Lyric Player: lyrics lighting up word by word, then its features"></video></div>
 
-    <section id="download">
-      <h2>Download</h2>
+    <section id="features" aria-labelledby="features-title">
+      <h2 class="k" id="features-title">What it does</h2>
+      <p class="statement">Play a song in Spotify or Apple Music <span class="dim">and its cover and synced lyrics show up in Lyric Player, in time.</span></p>
+
+      <div class="row">
+        <div class="row-media"><img src="find-lyrics.webp" alt="Find lyrics: results for Amazing Grace from BiniLyrics, NetEase and QQ Music, each marked word-synced or line-synced, with its length" loading="lazy" width="1400" height="875"></div>
+        <div>
+          <h3>It finds the lyrics for you</h3>
+          <p>It searches AMLL TTML DB, BiniLyrics, NetEase, QQ Music and LRCLIB, plus Apple Music when you sign in, and picks the version that matches your song: same title and artist, same length, word-synced when it exists.</p>
+          <p>Not the right one? Press <code>/</code> and pick another.</p>
+        </div>
+      </div>
+
+      <div class="row flip">
+        <div class="row-media"><img src="apple-mode.webp" alt="Apple Music Mode: a phone-shaped player with the cover, title and lyrics" loading="lazy" width="520" height="1088"></div>
+        <div>
+          <h3>Apple Music Mode</h3>
+          <p>One key turns the window into a portrait player like the iPhone’s lyrics view. Hide the lyrics for the Now Playing screen, where an album’s tall animated cover fills the top.</p>
+        </div>
+      </div>
+
+      <div class="also">
+        <h3>Also in Lyric Player</h3>
+        <ul>
+          <li><b>Translations and romanization</b>Read Japanese and Korean lyrics in Latin letters, and translate lyrics that have no translation.</li>
+          <li><b>AutoMix and a 10-band equalizer</b>Your own songs blend on the beat, like Apple Music.</li>
+          <li><b>Floating lyrics</b>The line being sung, over your other windows.</li>
+          <li><b>Lyric cards and clips</b>Share a few lines as an image or a short video.</li>
+          <li><b>Discord and Last.fm</b>Show what’s playing on your profile, and scrobble.</li>
+          <li><b>Phone remote</b>Control the music from your phone over your Wi-Fi.</li>
+        </ul>
+        <p class="also-more"><a href="/docs/lyricviewer/">Read the docs</a> for how each one works.</p>
+      </div>
+    </section>
+
+    <section id="download" aria-labelledby="download-title">
+      <h2 class="k" id="download-title">Download</h2>
       <p class="sub">The app updates itself after you install it, so you only download it once.</p>
-      <div class="cards">
-        <div class="card" id="cardWin">
-          <div class="card-top">
-            <div class="os"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5.1 10.4 4v7.2H3zM11.4 3.9 21 2.5v8.7h-9.6zM3 12.2h7.4v7.2L3 18.3zM11.4 12.2H21v8.7l-9.6-1.4z"/></svg></div>
-            <h3>Windows</h3>
-            <span class="badge" hidden>Your computer</span>
+      <div class="platforms">
+        <div class="platform" id="cardWin">
+          <div>
+            <h3>Windows <span class="here" hidden>This computer</span></h3>
+            <p class="req">Windows 10 or 11, 64-bit</p>
           </div>
-          <p class="req">Windows 10 or 11, 64-bit</p>
-          <a class="dl" data-dl="windows.installer"><span><b>Installer</b><small>Recommended · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
-          <a class="dl" data-dl="windows.portable"><span><b>Portable</b><small>No install, runs from anywhere · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
-          <details class="note">
-            <summary>Windows says “Windows protected your PC”?</summary>
-            The app isn’t signed with a paid certificate yet, so SmartScreen doesn’t know it. Click <b>More info</b>, then <b>Run anyway</b>. You only do this once.
-          </details>
+          <div>
+            <div class="files">
+              <a class="dl" data-dl="windows.installer"><span><b>Installer</b><small>Recommended · <span data-size></span></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></a>
+              <a class="dl" data-dl="windows.portable"><span><b>Portable</b><small>No install, runs from anywhere · <span data-size></span></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></a>
+            </div>
+            <details>
+              <summary>Windows says “Windows protected your PC”?</summary>
+              The app isn’t signed with a paid certificate yet, so SmartScreen doesn’t know it. Click <b>More info</b>, then <b>Run anyway</b>. You only do this once.
+            </details>
+          </div>
         </div>
-
-        <div class="card" id="cardMac">
-          <div class="card-top">
-            <div class="os"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.4 12.6c0-2.5 2-3.7 2.1-3.8-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9s-2-.9-3.3-.9C6.1 6.8 4.5 7.8 3.6 9.4c-1.9 3.2-.5 8 1.3 10.6.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8s2 .8 3.4.8 2.3-1.3 3.1-2.6c1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1-3.1-4.4zM13.9 5.1c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z"/></svg></div>
-            <h3>Mac</h3>
-            <span class="badge" hidden>Your computer</span>
+        <div class="platform" id="cardMac">
+          <div>
+            <h3>Mac <span class="here" hidden>This computer</span></h3>
           </div>
-          <p class="req">macOS 12 or later · real Liquid Glass on macOS 26</p>
-          <a class="dl" data-dl="mac.arm64"><span><b>Apple silicon</b><small>M1, M2, M3, M4 and later · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
-          <a class="dl" data-dl="mac.x64"><span><b>Intel</b><small>Older Macs · <span data-size></span></small></span><span class="go"><svg viewBox="0 0 24 24"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></span></a>
-          <details class="note">
-            <summary>First time opening it on a Mac</summary>
-            The app isn’t from the App Store or notarized by Apple yet, so macOS asks before opening it:
-            <ol>
-              <li>Open the .dmg and drag <b>Lyric Player</b> to <b>Applications</b>.</li>
-              <li>Open it. When macOS says it can’t check it, open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</li>
-              <li>If it says the app “is damaged”, run this once in Terminal, then open it again:<br><code>xattr -cr "/Applications/Lyric Player.app"</code></li>
-              <li>To follow Spotify or Apple Music, allow it when macOS asks if Lyric Player may control them.</li>
-            </ol>
-          </details>
+          <div>
+            <p class="soon-note" id="macSoon">The Mac version isn’t ready to download yet. Until then, <a href="/">open Lyric Player in your browser</a>.</p>
+            <div class="files" id="macFiles" hidden>
+              <a class="dl" data-dl="mac.arm64"><span><b>Apple silicon</b><small>M1 and later · <span data-size></span></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></a>
+              <a class="dl" data-dl="mac.x64"><span><b>Intel</b><small>Older Macs · <span data-size></span></small></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM4 19h16v2H4z"/></svg></a>
+            </div>
+            <details id="macHelp" hidden>
+              <summary>First time opening it on a Mac</summary>
+              The app isn’t from the App Store or notarized by Apple yet, so macOS asks before opening it:
+              <ol>
+                <li>Open the .dmg and drag <b>Lyric Player</b> to <b>Applications</b>.</li>
+                <li>Open it. When macOS says it can’t check it, open <b>System Settings › Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</li>
+                <li>If it says the app “is damaged”, run this once in Terminal, then open it again:<br><code>xattr -cr "/Applications/Lyric Player.app"</code></li>
+                <li>To follow Spotify or Apple Music, allow it when macOS asks if Lyric Player may control them.</li>
+              </ol>
+            </details>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="features">
-      <h2>What it does</h2>
-      <p class="sub">Everything the Apple Music lyrics screen does, for any song.</p>
-      <div class="features">
-        <div class="feature"><div class="em">🎤</div><h3>Word-by-word lyrics</h3><p>Words light up as they’re sung, with background vocals, duets and the springy motion of Apple Music.</p></div>
-        <div class="feature"><div class="em">🎧</div><h3>Follows Spotify and Apple Music</h3><p>Play a song in another app and its cover and synced lyrics show up here, in time.</p></div>
-        <div class="feature"><div class="em">🔎</div><h3>Finds the lyrics for you</h3><p>Searches several lyrics libraries and picks the best match, word-synced whenever possible.</p></div>
-        <div class="feature"><div class="em">🌈</div><h3>A background that moves</h3><p>The iPhone’s flowing cover background, ported from Lyricify, plus animated album covers.</p></div>
-        <div class="feature"><div class="em">🪟</div><h3>Floating lyrics</h3><p>The line being sung, floating over your other windows and games. Clicks go straight through.</p></div>
-        <div class="feature"><div class="em">🌏</div><h3>Translations and romanization</h3><p>See what Japanese, Korean or Chinese songs mean, and how to sing along.</p></div>
-      </div>
-    </section>
-
-    <section id="whats-new">
-      <h2>What’s new</h2>
-      <p class="sub">The app gets these automatically.</p>
-      <div class="changes" id="changes"><article><p class="sub" style="margin:0">Loading…</p></article></div>
+    <section id="whats-new" aria-labelledby="new-title">
+      <h2 class="k" id="new-title">What’s new</h2>
+      <p class="sub">The app gets these on its own.</p>
+      <div class="changes" id="changes"><p class="loading">Loading the latest versions…</p></div>
     </section>
   </main>
 
   <footer class="wrap">
-    <p>Made by Ruytha</p>
-    <p>Lyrics view powered by AMLL (AGPL-3.0). Background ported from Lyricify Backgrounds by WXRIW (Apache 2.0).<br>Lyric Player only shows lyrics; your music stays in the app that plays it.</p>
+    <p>Made by Ruytha · <a href="/docs/lyricviewer/">Docs</a></p>
+    <p>Lyrics view powered by AMLL (AGPL-3.0). Background ported from Lyricify Backgrounds by WXRIW (Apache 2.0). Lyric Player only shows lyrics; your music stays in the app that plays it.</p>
   </footer>
 
   <script>
@@ -240,21 +299,29 @@
     async function setup() {
       const me = detect();
       let d = null;
-      try { d = await (await fetch('downloads.json', { cache: 'no-store' })).json(); } catch { /* links stay "coming soon" */ }
+      try { d = await (await fetch('downloads.json', { cache: 'no-store' })).json(); } catch { /* buttons fall back below */ }
       for (const a of document.querySelectorAll('[data-dl]')) {
         const item = get(d, a.dataset.dl);
-        a.querySelector('[data-size]').textContent = item?.url ? (item.size || item.file || '') : 'coming soon';
-        if (item?.url) { a.href = item.url; a.rel = 'noopener'; } else a.classList.add('soon');
+        a.querySelector('[data-size]').textContent = item?.url ? (item.size || item.file || '') : 'not available yet';
+        if (item?.url) { a.href = item.url; a.rel = 'noopener'; } else { a.removeAttribute('href'); a.setAttribute('aria-disabled', 'true'); }
       }
-      if (d?.version) document.getElementById('metaLine').textContent = `Version ${d.version} · Free`;
+      // The Mac rows appear only once there is a Mac file to download.
+      const macReady = !!(get(d, 'mac.arm64')?.url || get(d, 'mac.x64')?.url);
+      document.getElementById('macFiles').hidden = !macReady;
+      document.getElementById('macHelp').hidden = !macReady;
+      document.getElementById('macSoon').hidden = macReady;
+      const parts = [d?.version && `Version ${d.version}`, 'Free', macReady ? 'Windows and Mac' : 'Windows 10 and 11'].filter(Boolean);
+      document.getElementById('metaLine').textContent = parts.join(' · ');
+
       const main = document.getElementById('mainDl');
       if (me.os) {
         const card = document.getElementById(me.os === 'mac' ? 'cardMac' : 'cardWin');
         card.classList.add('mine');
-        card.querySelector('.badge').hidden = false;
+        card.querySelector('.here').hidden = false;
         const item = get(d, me.key);
-        main.querySelector('span').textContent = item?.url ? me.label : `${me.label} · coming soon`;
-        if (item?.url) main.href = item.url; else main.setAttribute('aria-disabled', 'true');
+        if (item?.url) { main.href = item.url; main.rel = 'noopener'; main.querySelector('span').textContent = me.label; }
+        // No file for this computer yet: the button shows the Windows downloads instead.
+        else main.querySelector('span').textContent = 'See downloads';
       }
     }
 
@@ -268,12 +335,12 @@
             <ul>${e.notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>
           </article>`).join('');
       } catch {
-        box.closest('section').hidden = true;
+        box.innerHTML = '<p class="loading">Couldn’t load the list of changes. The app shows them under Settings › About.</p>';
       }
     }
 
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const v = document.querySelector('#shot video');
+      const v = document.querySelector('.media video');
       v.removeAttribute('autoplay'); v.pause(); v.controls = true;
     }
     setup();
