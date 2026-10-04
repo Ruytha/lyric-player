@@ -1,0 +1,140 @@
+/*
+  Lyric Player documentation.
+  Direction (owner): the look of Apple's developer documentation.
+  Reasons (R-31):
+  - Type: the system UI face (SF Pro on Apple devices, Segoe UI Variable on Windows), as reference
+    docs use; one serif-free family, weights 400/600/700 for hierarchy, 17px body for long reading.
+  - Colour: white page and near-black text, one link blue; the sidebar and asides are tinted greys
+    of the same family. Dark mode follows the system and keeps the same structure.
+  - Layout: a fixed topic sidebar on the left (the docs are a tree of topics), one article at a time
+    on the right, capped at about 70 characters per line.
+  - Media: real screenshots and silent clips of the app, 10 px radius and a hairline, no shadow.
+  - Asides: Note and Tip blocks with a coloured left edge, the reference style for side remarks.
+*/
+:root {
+  --bg: #ffffff;
+  --bg-side: #f5f5f7;
+  --bg-code: #f5f5f7;
+  --text: #1d1d1f;
+  --text-2: #6e6e73;
+  --line: #d2d2d7;
+  --link: #0066cc;
+  --nav: rgba(255, 255, 255, 0.86);
+  --active: rgba(0, 102, 204, 0.1);
+  --note: #0071e3;
+  --note-bg: #f0f5fd;
+  --tip: #1a8a3c;
+  --tip-bg: #eff8f1;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --bg-side: #1d1d1f;
+    --bg-code: #1d1d1f;
+    --text: #f5f5f7;
+    --text-2: #a1a1a6;
+    --line: #424245;
+    --link: #2997ff;
+    --nav: rgba(22, 22, 23, 0.86);
+    --active: rgba(41, 151, 255, 0.16);
+    --note: #2997ff;
+    --note-bg: #0e1a2b;
+    --tip: #30d158;
+    --tip-bg: #0d2014;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-padding-top: 72px; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.47; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 4px; }
+
+.skip { position: absolute; left: -999px; top: 8px; background: var(--bg); padding: 8px 12px; z-index: 30; }
+.skip:focus { left: 8px; }
+
+/* Top bar */
+.topbar { position: sticky; top: 0; z-index: 20; height: 52px; display: flex; align-items: center; gap: 16px; padding: 0 22px; background: var(--nav); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 600; font-size: 19px; letter-spacing: -0.01em; }
+.brand:hover { text-decoration: none; }
+.brand img { width: 26px; height: 26px; border-radius: 6px; }
+.brand span { color: var(--text-2); font-weight: 400; }
+.topbar nav { margin-left: auto; display: flex; gap: 22px; font-size: 14px; }
+.topbar nav a { color: var(--text); }
+.menu-btn { display: none; margin-left: auto; background: none; border: 1px solid var(--line); color: var(--text); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 14px; min-height: 36px; cursor: pointer; }
+
+/* Sidebar */
+.layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); }
+.sidebar { position: sticky; top: 52px; height: calc(100dvh - 52px); overflow-y: auto; background: var(--bg-side); border-right: 1px solid var(--line); padding: 18px 12px 40px; }
+.filter { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: 14px; margin-bottom: 14px; }
+.sidebar h2 { font-size: 12px; font-weight: 600; color: var(--text-2); margin: 18px 10px 6px; letter-spacing: 0; }
+.sidebar a { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; color: var(--text); font-size: 14px; line-height: 1.3; }
+.sidebar a:hover { background: var(--active); text-decoration: none; }
+.sidebar a[aria-current="page"] { background: var(--active); color: var(--link); font-weight: 600; }
+.sidebar a svg { flex: none; width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.4; opacity: .7; }
+.sidebar .empty { font-size: 14px; color: var(--text-2); padding: 6px 10px; }
+
+/* Article */
+main { min-width: 0; }
+.article { max-width: 860px; padding: 40px 56px 96px; }
+.crumbs { font-size: 14px; color: var(--text-2); margin-bottom: 26px; display: flex; flex-wrap: wrap; gap: 6px; }
+.crumbs a { color: var(--text-2); }
+.kind { font-size: 15px; font-weight: 600; color: var(--text-2); margin: 0 0 6px; }
+h1 { font-family: var(--font-display); font-size: 44px; line-height: 1.08; letter-spacing: -0.02em; font-weight: 700; margin: 0 0 14px; text-wrap: balance; }
+.abstract { font-size: 21px; line-height: 1.38; color: var(--text-2); margin: 0 0 32px; max-width: 40em; text-wrap: pretty; }
+h3 { font-family: var(--font-display); font-size: 28px; letter-spacing: -0.01em; margin: 44px 0 12px; font-weight: 700; padding-top: 22px; border-top: 1px solid var(--line); }
+h4 { font-size: 20px; margin: 28px 0 8px; font-weight: 600; }
+p, li { max-width: 40em; }
+p { margin: 0 0 16px; }
+ul, ol { padding-left: 22px; margin: 0 0 16px; }
+li { margin-bottom: 6px; }
+kbd { font-family: var(--mono); font-size: 13px; padding: 2px 7px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; background: var(--bg-code); white-space: nowrap; }
+code { font-family: var(--mono); font-size: 14px; background: var(--bg-code); padding: 1px 6px; border-radius: 5px; }
+.path { font-weight: 600; }
+
+figure { margin: 24px 0 28px; }
+figure img, figure video { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: #111; }
+figure.tall img, figure.tall video { width: auto; max-width: 100%; max-height: 640px; }
+figcaption { font-size: 14px; color: var(--text-2); margin-top: 10px; max-width: 46em; }
+.pair { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.pair figure { margin: 0; flex: 1 1 260px; }
+
+.aside { border-left: 4px solid var(--note); background: var(--note-bg); border-radius: 0 10px 10px 0; padding: 14px 18px; margin: 22px 0; max-width: 40em; }
+.aside.tip { border-color: var(--tip); background: var(--tip-bg); }
+.aside b { display: block; margin-bottom: 4px; font-size: 15px; }
+.aside p { margin: 0; }
+
+table { border-collapse: collapse; width: 100%; max-width: 44em; margin: 12px 0 24px; font-size: 15px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--text-2); font-size: 13px; }
+td:first-child { white-space: nowrap; }
+
+/* Topic lists (overview and "See also") */
+.topics { margin: 8px 0 0; }
+.topic-group { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; padding: 22px 0; border-top: 1px solid var(--line); }
+.topic-group h4 { margin: 2px 0 0; font-size: 17px; }
+.topic-links a { display: block; font-weight: 600; font-size: 17px; }
+.topic-links p { color: var(--text-2); margin: 2px 0 14px; font-size: 15px; }
+.see-also { margin-top: 48px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; position: fixed; inset: 52px 0 0 0; height: auto; z-index: 15; border-right: 0; }
+  body.nav-open .sidebar { display: block; }
+  .menu-btn { display: inline-flex; align-items: center; }
+  .topbar nav { display: none; }
+  .topbar { padding: 0 16px; }
+  .brand { white-space: nowrap; font-size: 17px; }
+  .brand span { display: none; }
+  .article { padding: 28px 16px 72px; }
+  h1 { font-size: 34px; }
+  .abstract { font-size: 19px; }
+  .topic-group { grid-template-columns: 1fr; gap: 8px; }
+  td:first-child { white-space: normal; }
+}

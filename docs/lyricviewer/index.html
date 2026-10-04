@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lyric Player Documentation</title>
+<meta name="description" content="How to use Lyric Player: lyrics, playback, Apple Music Mode, sharing and the desktop extras.">
+<base href="/docs/lyricviewer/">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="docs.css">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<header class="topbar">
+  <a class="brand" href="#overview"><img src="icon.png" alt=""> Lyric Player <span>Documentation</span></a>
+  <nav aria-label="Site">
+    <a href="/download/lyricviewer/">Download</a>
+    <a href="/">Open in your browser</a>
+  </nav>
+  <button class="menu-btn" type="button" aria-expanded="false" aria-controls="sidebar">Topics</button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Topics">
+    <input class="filter" type="search" placeholder="Filter" aria-label="Filter topics">
+    <div id="navList"></div>
+  </aside>
+
+  <main id="content" tabindex="-1">
+
+<!-- ======================================================================= -->
+<article class="article" data-id="overview" data-title="Lyric Player" data-group="">
+  <p class="kind">Documentation</p>
+  <h1>Lyric Player</h1>
+  <p class="abstract">Play your songs with lyrics that light up word by word, the way Apple Music shows them, or follow along with Spotify and Apple Music.</p>
+  <figure>
+    <video src="clips/romaji.mp4" poster="clips/romaji-poster.jpg" autoplay muted loop playsinline aria-label="Lyrics of アイドル by YOASOBI lighting up, with a romanized line under each line"></video>
+    <figcaption>Lyrics light up as they are sung. Japanese and Korean lines get a romanized line under them.</figcaption>
+  </figure>
+  <h3>Topics</h3>
+  <div class="topics" id="overviewTopics"></div>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="getting-started" data-title="Getting started" data-group="Essentials" data-abstract="Install the app, play a song and load its lyrics.">
+  <p class="kind">Article</p>
+  <h1>Getting started</h1>
+  <p class="abstract">Install the app, play a song and load its lyrics.</p>
+
+  <h3>Install</h3>
+  <ul>
+    <li><b>Windows:</b> download the installer or the portable version from the <a href="/download/lyricviewer/">download page</a>. The installer adds a Start menu entry; the portable version runs from wherever you put it.</li>
+    <li><b>In a browser:</b> open <a href="/">files.ruytha.dev</a>. Everything except the desktop extras (following other apps, floating lyrics, the tray, Discord) works there.</li>
+    <li><b>Mac:</b> the Mac download appears on the download page once it's ready.</li>
+  </ul>
+  <p>The app updates itself. New versions download in the background and are used from the next start (Settings, About).</p>
+
+  <h3>Play a song</h3>
+  <p>Drop an audio file (MP3, M4A, FLAC, OGG, WAV and more) onto the window, or use <span class="path">••• › Load new song…</span>. Lyric Player reads the title, artist and cover from the file and looks for lyrics on its own.</p>
+  <figure>
+    <img src="img/player.webp" alt="The player: album cover, title, progress bar and controls on the left, lyrics on the right" loading="lazy">
+    <figcaption>The player. The line being sung is bright; the rest are dimmed and blurred.</figcaption>
+  </figure>
+  <p>Click any lyric line to jump to it. The buttons under the controls are, from left: lyrics on or off, lyrics and background settings, AirPlay or Cast (when your device offers it), the library and full screen.</p>
+
+  <h3>Load lyrics yourself</h3>
+  <p>Lyric Player reads TTML files, the format Apple Music uses for word-synced lyrics. Drop a <code>.ttml</code> file on the window or use <span class="path">••• › Load lyrics file…</span>. The lyrics are saved with the song, so they're there next time.</p>
+  <div class="aside tip"><b>Tip</b><p>Try <span class="path">••• › Demo</span> to see a song with duets, background vocals and translations.</p></div>
+
+  <section class="see-also"><h3>See also</h3><div class="topics" data-see="finding-lyrics library shortcuts"></div></section>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="shortcuts" data-title="Keyboard shortcuts" data-group="Essentials" data-abstract="Every key the player listens for, plus the global shortcuts on desktop.">
+  <p class="kind">Reference</p>
+  <h1>Keyboard shortcuts</h1>
+  <p class="abstract">Every key the player listens for, plus the global shortcuts on desktop.</p>
+  <h3>In the player</h3>
+  <table>
+    <thead><tr><th>Key</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Space</kbd></td><td>Play or pause</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Back or forward 5 seconds</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>Volume up or down</td></tr>
+      <tr><td><kbd>N</kbd> <kbd>P</kbd></td><td>Next or previous song</td></tr>
+      <tr><td><kbd>/</kbd></td><td>Find lyrics</td></tr>
+      <tr><td><kbd>L</kbd></td><td>Show or hide the lyrics</td></tr>
+      <tr><td><kbd>[</kbd> <kbd>]</kbd></td><td>Lyrics 50 ms earlier or later</td></tr>
+      <tr><td><kbd>E</kbd></td><td>Edit lyric timing</td></tr>
+      <tr><td><kbd>Q</kbd></td><td>Up Next</td></tr>
+      <tr><td><kbd>C</kbd></td><td>Find album cover</td></tr>
+      <tr><td><kbd>M</kbd></td><td>Apple Music Mode on or off</td></tr>
+      <tr><td><kbd>S</kbd></td><td>Settings</td></tr>
+      <tr><td><kbd>F</kbd> or <kbd>F11</kbd></td><td>Full screen</td></tr>
+      <tr><td><kbd>I</kbd></td><td>Mini player (desktop)</td></tr>
+      <tr><td><kbd>K</kbd></td><td>Floating lyrics (desktop)</td></tr>
+    </tbody>
+  </table>
+  <h3>Global shortcuts (desktop)</h3>
+  <p>These work from any app, even when Lyric Player is in the tray. Turn them on or off in <span class="path">Settings › App › Global shortcuts</span>. On a Mac, use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.</p>
+  <table>
+    <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>Space</kbd></td><td>Play or pause</td></tr>
+      <tr><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>→</kbd></td><td>Next song</td></tr>
+      <tr><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>←</kbd></td><td>Previous song</td></tr>
+      <tr><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>L</kbd></td><td>Floating lyrics</td></tr>
+      <tr><td><kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>P</kbd></td><td>Show or hide the window</td></tr>
+    </tbody>
+  </table>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="finding-lyrics" data-title="Finding lyrics" data-group="Lyrics" data-abstract="Where lyrics come from, how the best match is picked, and how to choose different ones.">
+  <p class="kind">Article</p>
+  <h1>Finding lyrics</h1>
+  <p class="abstract">Where lyrics come from, how the best match is picked, and how to choose different ones.</p>
+  <h3>Automatic lyrics</h3>
+  <p>When a song has no lyrics, Lyric Player searches every source and uses the best match: the right title and artist, about the same length, and word-synced lyrics before line-synced ones. Turn this off in <span class="path">Settings › Lyrics › Find lyrics automatically</span>.</p>
+  <p>The sources, best first:</p>
+  <ol>
+    <li><b>Apple Music</b>, from your own subscription when you sign in (desktop app).</li>
+    <li><b>AMLL TTML DB</b>, a community library of word-synced lyrics.</li>
+    <li><b>BiniLyrics</b>, <b>NetEase Cloud Music</b> and <b>QQ Music</b>.</li>
+    <li><b>LRCLIB</b>, line-synced lyrics.</li>
+  </ol>
+  <p>If the best match fails to load, the next one is tried.</p>
+
+  <h3>Choose different lyrics</h3>
+  <p>Press <kbd>/</kbd> or use <span class="path">••• › Find other lyrics…</span>. Each result says whether it is word-synced or line-synced, where it comes from and how long the song is, so you can pick the version that matches yours.</p>
+  <figure>
+    <img src="img/find-lyrics.webp" alt="The Find lyrics search with results from BiniLyrics, NetEase and QQ Music, each marked word-synced or line-synced" loading="lazy">
+    <figcaption>Results for one song from several sources. The length helps you avoid live and remixed versions.</figcaption>
+  </figure>
+
+  <h3>Apple Music lyrics</h3>
+  <p>In the desktop app, open <span class="path">Settings › Apple Music</span> and sign in on Apple's own page. Lyric Player never sees your password. Lyrics then come from your account's country, the same lyrics the Apple Music app shows.</p>
+  <div class="aside"><b>Note</b><p>Apple Music lyrics need an active Apple Music subscription.</p></div>
+
+  <h3>Where the lyrics came from</h3>
+  <p>After the last line, the player shows who wrote the song and where the lyrics came from. When the lyrics don't name the songwriters, they're looked up on MusicBrainz (<span class="path">Settings › Lyrics › Find songwriters online</span>).</p>
+
+  <section class="see-also"><h3>See also</h3><div class="topics" data-see="lyric-timing translation"></div></section>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="lyric-timing" data-title="Fixing lyric timing" data-group="Lyrics" data-abstract="Shift lyrics that run early or late, fix single lines, or time lyrics yourself.">
+  <p class="kind">Article</p>
+  <h1>Fixing lyric timing</h1>
+  <p class="abstract">Shift lyrics that run early or late, fix single lines, or time lyrics yourself.</p>
+  <h3>Shift all lyrics</h3>
+  <p>When every line is a little early or late, press <kbd>[</kbd> or <kbd>]</kbd> to move the lyrics 50 ms at a time, or use the <span class="path">Lyric offset</span> stepper in the ••• menu. Click the number to reset it.</p>
+  <h3>Edit single lines</h3>
+  <p>Press <kbd>E</kbd> (<span class="path">••• › Edit lyric timing…</span>). Play the song and tap <kbd>T</kbd> as each selected line starts, or nudge a line by 50 ms with <kbd>[</kbd> and <kbd>]</kbd>. <span class="path">Save</span> keeps the changes with the song; <span class="path">Export .ttml</span> saves a file.</p>
+  <figure>
+    <img src="img/sync-editor.webp" alt="The Edit timing panel listing each lyric line with its start time and buttons to nudge it" loading="lazy">
+    <figcaption>Edit timing lists every line with its start time.</figcaption>
+  </figure>
+  <h3>Time lyrics from scratch</h3>
+  <p>For plain lyrics with no timing, use <span class="path">••• › Tap to sync lyrics…</span>: paste the words, play the song and tap (or press <kbd>Space</kbd>) as each line starts. The result is a line-synced TTML file you can keep.</p>
+  <p>Lyrics you timed or loaded yourself can be shared with everyone through <span class="path">••• › Send to AMLL TTML DB…</span>. It saves the file and opens the database's submission form (a GitHub account is needed).</p>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="translation" data-title="Translation and romanization" data-group="Lyrics" data-abstract="Show a translation under each line, translate lyrics that have none, and read Japanese and Korean lyrics in Latin letters.">
+  <p class="kind">Article</p>
+  <h1>Translation and romanization</h1>
+  <p class="abstract">Show a translation under each line, translate lyrics that have none, and read Japanese and Korean lyrics in Latin letters.</p>
+  <h3>Translations</h3>
+  <p>When the lyrics include a translation, turn it on with <span class="path">••• › Show translation</span>. For lyrics without one, <span class="path">••• › Translate lyrics</span> translates them into the language set in <span class="path">Settings › Lyrics › Translate lyrics to</span>, using the translator built into your browser when it has one.</p>
+  <h3>Romanization</h3>
+  <p>Korean and Japanese kana are romanized by the app itself. Lines with kanji or Chinese characters borrow the romanization NetEase or QQ Music has for the same song. Turn it on or off in <span class="path">Settings › Lyrics › Romanization</span>.</p>
+  <figure>
+    <img src="img/romaji.webp" alt="アイドル by YOASOBI with a romanized line under each Japanese line" loading="lazy">
+    <figcaption>A romanized line under every Japanese line.</figcaption>
+  </figure>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="library" data-title="Library and queue" data-group="Playing music" data-abstract="Keep songs in the app, add music folders, build playlists and choose what plays next.">
+  <p class="kind">Article</p>
+  <h1>Library and queue</h1>
+  <p class="abstract">Keep songs in the app, add music folders, build playlists and choose what plays next.</p>
+  <p>Press <kbd>Q</kbd> to open the library. It has three tabs:</p>
+  <ul>
+    <li><b>Up Next:</b> what's playing and what plays after it, with shuffle and repeat.</li>
+    <li><b>Songs:</b> every song you've played, newest first. The search box finds songs by title, artist or a line of their lyrics.</li>
+    <li><b>Playlists:</b> your own lists of songs.</li>
+  </ul>
+  <figure>
+    <img src="img/library.webp" alt="The library panel on the Songs tab, listing songs with their covers" loading="lazy">
+    <figcaption>The Songs tab. Search covers lyrics too.</figcaption>
+  </figure>
+  <h3>Music folders (desktop)</h3>
+  <p><span class="path">Add music folder…</span> adds a folder from your PC. New files are added and deleted ones disappear on their own. A <code>.ttml</code> file next to a song, with the same name, is used as its lyrics.</p>
+  <div class="aside"><b>Note</b><p>In a browser the library keeps up to 30 songs inside the browser. Folder songs in the desktop app don't count toward that.</p></div>
+  <h3>Smart shuffle</h3>
+  <p>With <span class="path">Settings › Playback › Smart shuffle</span> on, shuffle plays songs you haven't heard lately first and keeps the same artist from playing twice in a row.</p>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="following" data-title="Following Spotify and Apple Music" data-group="Playing music" data-abstract="Show synced lyrics for music playing in another app on your PC.">
+  <p class="kind">Article</p>
+  <h1>Following Spotify and Apple Music</h1>
+  <p class="abstract">Show synced lyrics for music playing in another app on your PC.</p>
+  <p>When Spotify, Apple Music, a browser or another app plays and Lyric Player doesn't, the desktop app shows that song's title, cover and synced lyrics. It reads what's playing from the system's media controls, the same information as the volume flyout. Turn it on or off in <span class="path">Settings › On This PC</span>.</p>
+  <p>The play, pause, next and seek buttons control the other app.</p>
+  <div class="aside"><b>Note</b><p>Lyric Player never records or saves music from Spotify or Apple Music. Lyric clips include sound only for your own song files.</p></div>
+  <h3>If the lyrics drift</h3>
+  <p>Apps report their position only now and then, and Lyric Player counts on from the last report. If the lyrics are early or late for a particular app, shift them with <kbd>[</kbd> and <kbd>]</kbd>; the offset is remembered for that song.</p>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="sound" data-title="AutoMix, crossfade and the equalizer" data-group="Playing music" data-abstract="Blend songs together on the beat, shape the sound, and even out the volume.">
+  <p class="kind">Article</p>
+  <h1>AutoMix, crossfade and the equalizer</h1>
+  <p class="abstract">Blend songs together on the beat, shape the sound, and even out the volume.</p>
+  <p>These settings work on your own song files, in <span class="path">Settings › Playback</span>.</p>
+  <h3>AutoMix</h3>
+  <p>Like Apple Music's AutoMix: the next song comes in on its first beat, sped up or slowed down a little to match the tempo, the bass swaps halfway through the blend, and its speed eases back to normal afterwards. AutoMix replaces Crossfade when both are on.</p>
+  <h3>Crossfade</h3>
+  <p>Fades each song into the next one, over up to 12 seconds.</p>
+  <h3>Equalizer</h3>
+  <p>Ten bands from 32 Hz to 16 kHz, with presets such as Bass Booster, Vocal Booster, Late Night and Rock. Open it from <span class="path">••• › Equalizer…</span>.</p>
+  <figure>
+    <img src="img/equalizer.webp" alt="The equalizer with ten sliders and preset buttons" loading="lazy">
+    <figcaption>Pick a preset or drag the sliders; your own settings are saved as Custom.</figcaption>
+  </figure>
+  <h3>More sound settings</h3>
+  <ul>
+    <li><b>Even out volume:</b> quiet songs are turned up and loud ones down.</li>
+    <li><b>Karaoke:</b> turns the lead vocal down. It works best when the voice is in the middle of the mix; some echo of it stays.</li>
+    <li><b>Sleep timer:</b> in the ••• menu. Each tap steps through 15, 30, 45 and 60 minutes and the end of the current song; the music fades out when it stops.</li>
+  </ul>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="apple-music-mode" data-title="Apple Music Mode and Now Playing" data-group="Look and feel" data-abstract="A phone-shaped player like the iPhone's, its Now Playing screen, and animated covers.">
+  <p class="kind">Article</p>
+  <h1>Apple Music Mode and Now Playing</h1>
+  <p class="abstract">A phone-shaped player like the iPhone's, its Now Playing screen, and animated covers.</p>
+  <h3>Apple Music Mode</h3>
+  <p>Press <kbd>M</kbd> or use <span class="path">••• › Apple Music Mode</span>. The window becomes a portrait player like the iPhone's lyrics view; the controls slide up when you move the pointer and hide again when you stop.</p>
+  <div class="pair">
+    <figure class="tall">
+      <img src="img/apple-mode.webp" alt="Apple Music Mode: a portrait player with the cover, title and lyrics" loading="lazy">
+      <figcaption>Apple Music Mode with lyrics.</figcaption>
+    </figure>
+    <figure class="tall">
+      <video src="clips/now-playing.mp4" poster="clips/now-playing-poster.jpg" autoplay muted loop playsinline aria-label="The Now Playing screen with the moving cover of Hymn for the Weekend filling the top"></video>
+      <figcaption>Hide the lyrics (<kbd>L</kbd>) for the Now Playing screen. A tall animated cover fills the top.</figcaption>
+    </figure>
+  </div>
+  <h3>Animated covers</h3>
+  <p>When an album has a moving cover on Apple Music, Lyric Player plays it in place of the still one. Find covers in <span class="path">Settings › Artwork</span>, or choose one yourself with <kbd>C</kbd>. Results marked Animated have a moving cover. <span class="path">••• › Use still cover</span> switches back for one song.</p>
+  <h3>Animated cover beside the lyrics</h3>
+  <p>With <span class="path">Settings › Artwork › Animated cover beside the lyrics</span> on, a wide window shows the tall animated cover on the left with the title and controls at its foot, and the lyrics on the right, like Apple Music on iPad.</p>
+  <figure>
+    <video src="clips/side-cover.mp4" poster="clips/side-cover-poster.jpg" autoplay muted loop playsinline aria-label="Hymn for the Weekend with its moving cover on the left and lyrics on the right"></video>
+    <figcaption>It only applies when the window is wider than it is tall and the album has a tall animated cover.</figcaption>
+  </figure>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="customizing" data-title="Customizing the lyrics" data-group="Look and feel" data-abstract="Change the size, font, colour, glow and background of the lyrics.">
+  <p class="kind">Article</p>
+  <h1>Customizing the lyrics</h1>
+  <p class="abstract">Change the size, font, colour, glow and background of the lyrics.</p>
+  <p>Press <kbd>S</kbd> for Settings. Changes show up straight away behind the panel.</p>
+  <figure>
+    <img src="img/settings.webp" alt="The Settings panel open on the Lyrics section with sliders for size, weight, letter spacing, bloom and sweep softness" loading="lazy">
+    <figcaption>The Lyrics section of Settings.</figcaption>
+  </figure>
+  <h3>Lyrics</h3>
+  <ul>
+    <li><b>Size, Weight, Letter spacing:</b> the shape of the text.</li>
+    <li><b>Bloom:</b> the glow around the line being sung.</li>
+    <li><b>Sweep softness:</b> how soft the edge is as words light up.</li>
+    <li><b>Focus position:</b> how far down the screen the current line sits.</li>
+    <li><b>Font and Colour:</b> including a colour taken from the album cover.</li>
+    <li><b>Blur other lines, Zoom current line, Spring motion, Hide sung lines.</b></li>
+  </ul>
+  <h3>Background</h3>
+  <p>Choose the background style, how fast it flows, how strongly it reacts to the bass and kick drum, and how dim it is. <span class="path">Still background</span> and a lower <span class="path">Render quality</span> save power on laptops.</p>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="sharing" data-title="Lyric cards and clips" data-group="Sharing" data-abstract="Share a few lines as an image, or a short video of the lyrics moving.">
+  <p class="kind">Article</p>
+  <h1>Lyric cards and clips</h1>
+  <p class="abstract">Share a few lines as an image, or a short video of the lyrics moving.</p>
+  <h3>Lyric cards</h3>
+  <p>Open <span class="path">••• › Card</span>, pick up to six lines and a style (Dark, Bright or Lyricify), then <span class="path">Save image</span> or <span class="path">Copy</span>.</p>
+  <figure>
+    <img src="img/card.webp" alt="The Lyric card dialog: a preview card with two lines of Cake By The Ocean, and the list of lines to pick from" loading="lazy">
+    <figcaption>The card previews as you pick lines.</figcaption>
+  </figure>
+  <h3>Lyric clips</h3>
+  <p><span class="path">••• › Clip</span> records a short video of the lyrics moving over the cover, as a 9:16 story, a square or a 16:9 video. It records in real time while the song plays.</p>
+  <div class="aside"><b>Note</b><p>Clips include sound only for your own song files. Music followed from Spotify or Apple Music is never recorded.</p></div>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="discord-lastfm" data-title="Discord and Last.fm" data-group="Sharing" data-abstract="Show what you're playing on your Discord profile and scrobble to Last.fm.">
+  <p class="kind">Article</p>
+  <h1>Discord and Last.fm</h1>
+  <p class="abstract">Show what you're playing on your Discord profile and scrobble to Last.fm.</p>
+  <h3>Discord Rich Presence</h3>
+  <ol>
+    <li>Create an application at <a href="https://discord.com/developers/applications" rel="noopener">discord.com/developers/applications</a>. Its name is what Discord shows, as in "Listening to Lyric Player".</li>
+    <li>Paste its Application ID into <span class="path">Settings › Discord</span> and turn on <span class="path">Discord Rich Presence</span>.</li>
+    <li>Choose the two lines of text using <code>{title}</code>, <code>{artist}</code> and <code>{album}</code>, and whether the cover is animated, still or hidden.</li>
+  </ol>
+  <p>The Discord app must be open. Animated covers show as a looping GIF made by the Lyric Player website.</p>
+  <h3>Last.fm</h3>
+  <p>Create an API account at <a href="https://www.last.fm/api/account/create" rel="noopener">last.fm/api</a>, paste its API key and shared secret into <span class="path">Settings › Last.fm</span>, connect your account and turn on <span class="path">Scrobble to Last.fm</span>. Songs are added once you've heard half of them, or 4 minutes.</p>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="desktop-extras" data-title="Desktop extras" data-group="More" data-abstract="Floating lyrics, the mini player, the tray, the phone remote and the fun extras.">
+  <p class="kind">Article</p>
+  <h1>Desktop extras</h1>
+  <p class="abstract">Floating lyrics, the mini player, the tray, the phone remote and the fun extras.</p>
+  <figure>
+    <img src="img/menu.webp" alt="The ••• menu open: Card, Clip, Floating and Full screen tiles above lyric, fun, song and app items" loading="lazy">
+    <figcaption>Most extras live in the ••• menu.</figcaption>
+  </figure>
+  <h3>Floating lyrics and mini player</h3>
+  <p><b>Floating lyrics</b> (<kbd>K</kbd>, or <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>L</kbd> from anywhere) shows the current line in a bar that stays on top of other windows. The <b>mini player</b> (<kbd>I</kbd>) is a small window with the cover and the current line.</p>
+  <h3>The tray</h3>
+  <p>With <span class="path">Settings › App › Keep running in the tray</span> on, closing the window leaves Lyric Player running by the clock, still following your music. Quit from its menu there. It can also open when you sign in, and start in the tray.</p>
+  <h3>Phone remote</h3>
+  <p>Turn on <span class="path">Settings › Phone remote</span> and scan the QR code with your phone. The phone shows the cover and lyrics and controls the music, over your home Wi-Fi.</p>
+  <h3>Just for fun</h3>
+  <ul>
+    <li><b>Your stats:</b> what you've listened to most.</li>
+    <li><b>Lyrics quiz:</b> a word disappears from the next line; type it before the line is over.</li>
+    <li><b>Emoji reactions</b> (<span class="path">Settings › Fun</span>): emoji float up when words like love, fire or dance are sung. Add your own words as <code>word=emoji</code>.</li>
+  </ul>
+</article>
+
+<!-- ======================================================================= -->
+<article class="article" data-id="troubleshooting" data-title="Troubleshooting" data-group="Help" data-abstract="Fixes for the problems people run into, and how to report one.">
+  <p class="kind">Article</p>
+  <h1>Troubleshooting</h1>
+  <p class="abstract">Fixes for the problems people run into, and how to report one.</p>
+  <h4>A new version doesn't show up</h4>
+  <p>Updates download in the background and are used from the next start. Quit Lyric Player completely (from the tray menu if it's there) and open it again. <span class="path">Settings › About</span> shows the version and can use a downloaded update right away.</p>
+  <h4>Apple Music lyrics don't load</h4>
+  <p>Check that you're signed in under <span class="path">Settings › Apple Music</span> and that your subscription is active. Some songs only have lyrics in some countries. When Apple Music has none, the next source is used.</p>
+  <h4>Lyrics are early or late</h4>
+  <p>Shift them with <kbd>[</kbd> and <kbd>]</kbd>, or fix single lines with <kbd>E</kbd>. See <a href="#lyric-timing">Fixing lyric timing</a>.</p>
+  <h4>The background is slow or the laptop runs warm</h4>
+  <p>Lower <span class="path">Settings › Background › Render quality</span> or <span class="path">Frame rate</span>, or turn on <span class="path">Still background</span>.</p>
+  <h3>Report a problem</h3>
+  <p>Open <span class="path">Settings › About › Copy diagnostics</span>. It copies a report with the versions, your settings (without passwords or keys) and recent errors, ready to paste into a message.</p>
+</article>
+
+  </main>
+</div>
+<script src="docs.js"></script>
+</body>
+</html>
