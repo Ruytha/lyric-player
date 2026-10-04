@@ -156,7 +156,7 @@ function relayAppleMusic() {
   ipcMain.handle('apple-music', async (event, kind, params = {}) => {
     if (!fromApp(event)) throw new Error('not allowed');
     if (kind === 'status') {
-      return inAppleMusic('return { signedIn: !!mk.isAuthorized, storefront: mk.storefrontId || "us" };');
+      return inAppleMusic('return { signedIn: !!mk.isAuthorized, storefront: mk.storefrontCountryCode || mk.storefrontId || "us" };');
     }
     if (kind === 'sign-in') {
       await appleMusicWindow();
@@ -177,8 +177,9 @@ function relayAppleMusic() {
       const term = String(params.term || '').slice(0, 200).trim();
       if (!term) throw new Error('missing query');
       return inAppleMusic(`
-        const sf = mk.storefrontId || 'us';
-        const r = await mk.api.music('/v1/catalog/' + sf + '/search', { term: ${JSON.stringify(term)}, types: 'songs', limit: 10 });
+        // {{storefrontId}}: MusicKit fills in the account's own country, as the web
+        // player does (storefrontId can stay "us", and lyrics are per country).
+        const r = await mk.api.music('/v1/catalog/{{storefrontId}}/search', { term: ${JSON.stringify(term)}, types: 'songs', limit: 10 });
         return (r.data.results.songs?.data || []).map((s) => ({ id: s.id, title: s.attributes.name, artist: s.attributes.artistName, album: s.attributes.albumName,
           duration: (s.attributes.durationInMillis || 0) / 1000, lyrics: !!s.attributes.hasLyrics, synced: !!s.attributes.hasTimeSyncedLyrics }));`);
     }
@@ -188,13 +189,12 @@ function relayAppleMusic() {
       // The page returns { error } rather than throwing, so the message survives.
       const r = await inAppleMusic(`
         if (!mk.isAuthorized) return { error: 'sign in to Apple Music first (Settings > Apple Music)' };
-        const sf = mk.storefrontId || 'us';
         // As the web player asks: newer answers carry the TTML in ttmlLocalizations.
         const lang = (navigator.language || 'en-US');
         const why = [];
         for (const kind of ['syllable-lyrics', 'lyrics']) {
           try {
-            const r = await mk.api.music('/v1/catalog/' + sf + '/songs/' + ${JSON.stringify(id)} + '/' + kind, { 'l[lyrics]': lang, extend: 'ttmlLocalizations' });
+            const r = await mk.api.music('/v1/catalog/{{storefrontId}}/songs/' + ${JSON.stringify(id)} + '/' + kind, { 'l[lyrics]': lang, extend: 'ttmlLocalizations' });
             const a = r.data?.data?.[0]?.attributes || {};
             const ttml = a.ttml || a.ttmlLocalizations;
             if (typeof ttml === 'string' && ttml.trim()) return { ttml, word: kind === 'syllable-lyrics' };
@@ -206,7 +206,7 @@ function relayAppleMusic() {
             why.push(kind + ': ' + (status || e?.errorCode || e?.message || e));
           }
         }
-        return { error: 'Apple Music has no lyrics for this song (' + why.join(', ') + ')' };`);
+        return { error: 'Apple Music has no lyrics for this song (' + why.join(', ') + ', store ' + (mk.storefrontCountryCode || '?') + '/' + (mk.storefrontId || '?') + ')' };`);
       if (r?.error) throw new Error(r.error);
       return r;
     }

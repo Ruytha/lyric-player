@@ -1,7 +1,7 @@
 {
   "name": "lyric-player-desktop",
   "productName": "Lyric Player",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "description": "Apple Music-style TTML lyric player",
   "author": {
     "name": "Ruytha"

@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.11.3",
+    "date": "2026-10-04",
+    "notes": [
+      "Apple Music lyrics come from your own account’s country, not the US store (needs the 2.11.3 installer)."
+    ]
+  },
+  {
     "version": "2.11.2",
     "date": "2026-10-04",
     "notes": [
