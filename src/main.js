@@ -13,6 +13,7 @@ import { LyricsSearchDialog } from './lyrics-search-ui.js';
 import { Library, songId, makeThumb } from './library.js';
 import { MotionArtwork } from './motion-art.js';
 import { ArtSearchDialog } from './art-search-ui.js';
+import { CatalogDialog } from './catalog-ui.js';
 import { findAlbum, fetchMotionArt, artworkAt } from './apple-art.js';
 import { appleMusicAvailable, appleMusicStatus, appleMusicSignIn, appleMusicSignOut, knownSignedIn } from './apple-music.js';
 import { SOURCE_NAMES, searchLyrics, getTtml } from './lyrics-search.js';
@@ -206,6 +207,7 @@ const ui = new PlayerUI(audio, {
       case 'demo': loadDemo(); break;
       case 'find-lyrics': openLyricSearch(); break;
       case 'find-art': openArtSearch(); break;
+      case 'catalog': catalog.open(); break;
       case 'remove-motion': setCover(state.cover && { ...state.cover, off: true }, { save: true }); toast('Using the still cover for this song'); break;
       case 'am-mode': settings.set('layout', settings.get('layout') === 'apple' ? 'standard' : 'apple'); break;
       case 'fullscreen': toggleFullscreen(); break;
@@ -456,6 +458,13 @@ const artSearch = new ArtSearchDialog($('artSearch'), {
       ? `Animated cover from ${r.album}${settings.get('motionArt') ? '' : ' (turn on Animated covers in Settings to see it move)'}`
       : `${r.album} has no animated cover, so its still cover is used`);
   },
+});
+
+// Search Apple Music: previews, links to Apple Music and the iTunes Store, lyrics.
+const catalog = new CatalogDialog($('catalogSearch'), {
+  onPreview: () => { if (state.external) pcCommand('pause'); else audio.pause(); },
+  motionArt: () => settings.get('motionArt'),
+  appleLyrics: () => settings.get('appleLyrics') && appleMusicAvailable(),
 });
 
 function openArtSearch(query) {

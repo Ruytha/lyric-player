@@ -23,3 +23,6 @@ private-videos/
 
 # Discord images (album art from the library)
 discord-art/
+
+# LyricsFlow copy for reference only (AGPL, includes an Apple Music downloader): never committed or deployed
+big c look here/
