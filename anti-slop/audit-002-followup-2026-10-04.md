@@ -55,3 +55,17 @@ The old promo video (drifting orbs, finding 5) and the unused `screenshot.png` w
 
 ### Block 4: Craftsmanship
 - C-1 to C-5 PASS; R-05 PASS (statement, alternating rows, list, platform list, changelog: each section built differently); R-11 PASS; R-15 PASS ("Download for Windows"); R-16 PASS; R-20 PASS (shares the docs' frame and the video's type); R-29 PASS (off-black, off-white, one wash, one accent); R-30 PASS; R-31 PASS (header comment).
+
+## Addendum: motion and library songs (owner's request, 2026-10-04)
+
+The owner asked for animations and their own library songs as examples on the website. Changes, each with its job (R-19):
+- Headline lights up word by word once on load, the app's own lyric sweep (identity motif).
+- The hero plays three library songs in turn (Cake By The Ocean, アイドル with romanization, INDUSTRY BABY); tabs show which song and how far along, click or arrow keys to switch.
+- The wash takes the colour of the song on screen, as the player tints itself from the cover.
+- The statement under "What it does" lights up word by word as it scrolls through the viewport.
+- Feature rows ease in once; their clips (Hymn for the Weekend with the cover beside the lyrics, Apple Music Mode's Now Playing) play only while on screen.
+- Reduced motion: everything shows lit and still, clips get controls instead of autoplaying.
+
+Dial update: MOTION 1 -> 2. The demo-song hero and the earlier demo screenshots were removed.
+
+Evidence (offscreen Chromium at 1440x900 and 375x812): headline mid-sweep and finished frames captured; hero song 1 plays at load, a tab click switches to song 2 (wash rgba(150,136,40,.42), progress bar advancing), song 2 ending moves to song 3 by itself; statement 0/21 words lit before it scrolls in, 21/21 after; all three rows revealed; both row clips playing while on screen and the hero paused off screen; no horizontal overflow; no console errors.

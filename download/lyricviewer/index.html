@@ -9,7 +9,7 @@
   <meta name="theme-color" content="#0d0c10">
   <meta property="og:title" content="Lyric Player">
   <meta property="og:description" content="Synced lyrics that light up word by word, for your own music and for Spotify and Apple Music.">
-  <meta property="og:image" content="https://files.ruytha.dev/download/lyricviewer/hero-poster.jpg">
+  <meta property="og:image" content="https://files.ruytha.dev/download/lyricviewer/media/cake-poster.jpg">
   <link rel="icon" href="icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,9 +19,9 @@
     Direction: the owner's direction for Lyric Player's showcase (audit 001): near-black, one
     colour wash taken from the song on screen, big wide Archivo words, real footage of the app.
     Reasons (R-31):
-    - Colour: off-black base so the app footage carries the colour; one static wash in the demo
-      cover's navy, because the player tints itself from the cover. The app's pink (#fa586a) is
-      the one accent and is used only on the download button, the one action that matters.
+    - Colour: off-black base so the app footage carries the colour; one wash in the cover colour
+      of the song on screen, because the player tints itself from the cover. The app's pink
+      (#fa586a) is the one accent and is used only on the download button, the one action that matters.
     - Type: Archivo wide/black for the few big words (broad letters say a lot with little text,
       as in the video); the system face (SF Pro, Segoe UI Variable) for reading, the same face as
       the app and the docs, so the three read as one product.
@@ -31,7 +31,7 @@
       rest. Download and changelog are lists, not card grids.
     - Shape: 12 px radius on controls, 16 px on media, nothing pill-shaped; no shadows or glow;
       a 1 px hairline separates screenshots from the background.
-    - Media: the built-in demo song only, so no third-party music or covers on a public page.
+    - Media: the owner's own library songs as examples (owner's request, 2026-10-04).
   -->
   <style>
     :root {
@@ -52,7 +52,6 @@
     @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
     body {
       margin: 0; color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden;
-      background: radial-gradient(1100px 700px at 12% -8%, rgba(46, 78, 150, 0.42), rgba(46, 78, 150, 0) 70%), var(--bg);
     }
     a { color: var(--link); text-decoration: none; }
     a:hover { text-decoration: underline; }
@@ -136,6 +135,47 @@
     .changes li + li { margin-top: 8px; }
     .loading { color: var(--text-2); padding: 26px 0; margin: 0; }
 
+    /* Motion (each one has a job):
+       - Headline and statement light up word by word, the way the app lights a sung line.
+       - The page's wash takes the colour of the song on screen, as the player tints itself.
+       - The hero plays your songs one after another; the tabs show which and how far along.
+       - Rows ease in once as you reach them; clips only play while they're on screen.
+       Reduced motion: everything is shown lit and still, clips wait for a click. */
+    @property --p { syntax: '<percentage>'; inherits: false; initial-value: 100%; }
+    @property --wash { syntax: '<color>'; inherits: true; initial-value: rgba(46, 78, 150, 0.42); }
+    body { transition: --wash 1.4s ease; background: radial-gradient(1100px 700px at 12% -8%, var(--wash), transparent 70%), var(--bg); }
+    .w { color: transparent; background-image: linear-gradient(90deg, var(--text) var(--p), var(--dim) var(--p)); -webkit-background-clip: text; background-clip: text; }
+    .motion .hero h1 .w { --p: 0%; animation: lit var(--d, .4s) cubic-bezier(.3, 0, .4, 1) forwards; animation-delay: var(--at, 0s); }
+    @keyframes lit { to { --p: 100%; } }
+    .statement .w { --p: 0%; transition: --p .45s ease; }
+    .statement .w.on { --p: 100%; }
+
+    .media { position: relative; }
+    .media video { transition: opacity .6s ease; }
+    .media video + video { position: absolute; inset: 0; }
+    .media video:not(.on) { opacity: 0; }
+    .songs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .songs button { position: relative; overflow: hidden; text-align: left; font: inherit; color: var(--text-2); background: var(--raise); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px 14px; min-height: 64px; cursor: pointer; transition: color .2s, border-color .2s, background .2s; }
+    .songs button:hover { color: var(--text); background: rgba(244, 243, 246, 0.08); }
+    .songs button[aria-selected="true"] { color: var(--text); border-color: rgba(244, 243, 246, 0.3); }
+    .songs b { display: block; font-size: 16px; color: inherit; }
+    .songs span { font-size: 14px; }
+    .songs i { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--done, 0%); background: var(--text); opacity: .85; }
+    .songs button[aria-selected="false"] i { display: none; }
+
+    .motion .reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s ease, transform .8s cubic-bezier(.2, .8, .2, 1); }
+    .motion .reveal.on { opacity: 1; transform: none; }
+    .row.wide { grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); }
+    .row-media video { display: block; width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--line); background: #111; }
+    .row.flip .row-media video { width: min(100%, 320px); border-radius: 28px; }
+    @media (max-width: 820px) {
+      .row.wide { grid-template-columns: minmax(0, 1fr); }
+      .songs { gap: 8px; }
+      .songs button { padding: 10px 12px 12px; }
+      .songs b { font-size: 14px; }
+      .songs span { display: none; }
+    }
+
     footer { padding: 120px 0 56px; color: var(--text-2); font-size: 15px; }
     footer p { margin: 6px 0; max-width: 46em; }
 
@@ -167,7 +207,7 @@
 
   <main class="wrap" id="main">
     <div class="hero">
-      <h1 class="k">Lyrics that light up, <span class="dim">word by word.</span></h1>
+      <h1 class="k" id="headline">Lyrics that light up, word by word.</h1>
       <p class="lede">Synced lyrics for the songs you play, the way Apple Music shows them: your own music, or whatever’s playing in Spotify and Apple Music on your PC.</p>
       <div class="actions">
         <a class="btn" id="mainDl" href="#download">
@@ -177,17 +217,24 @@
         <a href="/">Or open it in your browser</a>
       </div>
       <p class="meta" id="metaLine">Free · Windows 10 and 11</p>
-      <div class="media">
-        <video src="hero.mp4" poster="hero-poster.jpg" width="1600" height="1000" autoplay muted loop playsinline preload="metadata" aria-label="The player with the demo song: the line being sung lights up word by word, the next lines wait dimmed"></video>
+      <div class="media" id="heroMedia">
+        <video data-song="0" src="media/cake.mp4" poster="media/cake-poster.jpg" width="1280" height="800" muted playsinline preload="auto" aria-label="Cake By The Ocean by DNCE playing in Lyric Player, its lyrics lighting up word by word"></video>
+        <video data-song="1" src="media/idol.mp4" poster="media/idol-poster.jpg" width="1280" height="800" muted playsinline preload="metadata" aria-label="アイドル by YOASOBI in Lyric Player, with a romanized line under each Japanese line"></video>
+        <video data-song="2" src="media/industry.mp4" poster="media/industry-poster.jpg" width="1280" height="800" muted playsinline preload="metadata" aria-label="INDUSTRY BABY by Lil Nas X and Jack Harlow playing in Lyric Player"></video>
+      </div>
+      <div class="songs" role="tablist" aria-label="Example songs">
+        <button role="tab" type="button" data-song="0" aria-selected="true"><b>Cake By The Ocean</b><span>DNCE</span><i></i></button>
+        <button role="tab" type="button" data-song="1" aria-selected="false"><b>アイドル</b><span>YOASOBI · romanized</span><i></i></button>
+        <button role="tab" type="button" data-song="2" aria-selected="false"><b>INDUSTRY BABY</b><span>Lil Nas X, Jack Harlow</span><i></i></button>
       </div>
     </div>
 
     <section id="features" aria-labelledby="features-title">
       <h2 class="k" id="features-title">What it does</h2>
-      <p class="statement">Play a song in Spotify or Apple Music <span class="dim">and its cover and synced lyrics show up in Lyric Player, in time.</span></p>
+      <p class="statement" id="statement">Play a song in Spotify or Apple Music and its cover and synced lyrics show up in Lyric Player, in time.</p>
 
-      <div class="row">
-        <div class="row-media"><img src="find-lyrics.webp" alt="Find lyrics: results for Amazing Grace from BiniLyrics, NetEase and QQ Music, each marked word-synced or line-synced, with its length" loading="lazy" width="1400" height="875"></div>
+      <div class="row reveal">
+        <div class="row-media"><img src="media/find-lyrics.webp" alt="Find lyrics: results for Cake By The Ocean from BiniLyrics, NetEase and QQ Music, each marked word-synced or line-synced, with its length" loading="lazy" width="1600" height="1000"></div>
         <div>
           <h3>It finds the lyrics for you</h3>
           <p>It searches AMLL TTML DB, BiniLyrics, NetEase, QQ Music and LRCLIB, plus Apple Music when you sign in, and picks the version that matches your song: same title and artist, same length, word-synced when it exists.</p>
@@ -195,8 +242,16 @@
         </div>
       </div>
 
-      <div class="row flip">
-        <div class="row-media"><img src="apple-mode.webp" alt="Apple Music Mode: a phone-shaped player with the cover, title and lyrics" loading="lazy" width="520" height="1088"></div>
+      <div class="row wide reveal">
+        <div class="row-media"><video class="inview" src="media/side-cover.mp4" poster="media/side-cover-poster.jpg" width="1280" height="800" muted loop playsinline preload="none" aria-label="Hymn for the Weekend by Coldplay: the moving album cover fills the left side, the lyrics run on the right"></video></div>
+        <div>
+          <h3>The cover moves. The lyrics stay.</h3>
+          <p>When an album has a moving cover on Apple Music, Lyric Player plays it. In a wide window the tall version can fill one side while the lyrics run on the other, like Apple Music on iPad.</p>
+        </div>
+      </div>
+
+      <div class="row flip reveal">
+        <div class="row-media"><video class="inview" src="media/now-playing.mp4" poster="media/now-playing-poster.jpg" width="430" height="900" muted loop playsinline preload="none" aria-label="Apple Music Mode's Now Playing screen with the moving cover of Hymn for the Weekend filling the top"></video></div>
         <div>
           <h3>Apple Music Mode</h3>
           <p>One key turns the window into a portrait player like the iPhone’s lyrics view. Hide the lyrics for the Now Playing screen, where an album’s tall animated cover fills the top.</p>
@@ -339,10 +394,88 @@
       }
     }
 
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const v = document.querySelector('.media video');
-      v.removeAttribute('autoplay'); v.pause(); v.controls = true;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!still) document.documentElement.classList.add('motion');
+
+    // Words as spans, so they can light up one by one like a sung line.
+    function splitWords(el) {
+      const words = el.textContent.trim().split(/\s+/);
+      el.setAttribute('aria-label', el.textContent.trim());
+      el.innerHTML = words.map((w) => `<span class="w" aria-hidden="true">${esc(w)}</span>`).join(' ');
+      return [...el.querySelectorAll('.w')];
     }
+    // Headline: one word after another, longer words take longer.
+    let at = 0.25;
+    for (const w of splitWords(document.getElementById('headline'))) {
+      const d = 0.18 + w.textContent.length * 0.035;
+      w.style.setProperty('--at', `${at}s`);
+      w.style.setProperty('--d', `${d}s`);
+      at += d * 0.8;
+    }
+    // Statement: lights up as you scroll through it.
+    const statement = document.getElementById('statement');
+    const sWords = splitWords(statement);
+    function lightStatement() {
+      const r = statement.getBoundingClientRect();
+      const t = still ? 1 : Math.min(1, Math.max(0, (innerHeight * 0.85 - r.top) / (innerHeight * 0.5)));
+      const n = Math.round(t * sWords.length);
+      sWords.forEach((w, i) => w.classList.toggle('on', i < n));
+    }
+    addEventListener('scroll', lightStatement, { passive: true });
+    lightStatement();
+
+    // Hero: the example songs play one after another; the page takes each song's colour.
+    const WASH = ['rgba(128, 56, 42, 0.5)', 'rgba(150, 136, 40, 0.42)', 'rgba(84, 100, 150, 0.46)'];
+    const heroVideos = [...document.querySelectorAll('#heroMedia video')];
+    const tabs = [...document.querySelectorAll('.songs button')];
+    let song = 0, heroVisible = true;
+    function showSong(i, { play = !still } = {}) {
+      song = i;
+      heroVideos.forEach((v, k) => {
+        v.classList.toggle('on', k === i);
+        if (k !== i) v.pause();
+      });
+      tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
+      document.body.style.setProperty('--wash', WASH[i]);
+      const v = heroVideos[i];
+      v.controls = still;
+      v.currentTime = 0;
+      if (play && heroVisible) v.play().catch(() => {});
+    }
+    heroVideos.forEach((v, k) => {
+      v.addEventListener('timeupdate', () => { if (v.duration) tabs[k].style.setProperty('--done', `${(v.currentTime / v.duration) * 100}%`); });
+      v.addEventListener('ended', () => { if (!still) showSong((k + 1) % heroVideos.length); });
+    });
+    tabs.forEach((t, k) => t.addEventListener('click', () => showSong(k, { play: true })));
+    // Arrow keys move between the song tabs.
+    document.querySelector('.songs').addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const k = (song + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+      showSong(k, { play: true });
+      tabs[k].focus();
+    });
+    showSong(0);
+
+    // Clips play only while on screen; rows ease in once.
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const el = e.target;
+        if (el.tagName === 'VIDEO') {
+          if (e.isIntersecting && !still) el.play().catch(() => {}); else el.pause();
+        } else if (e.isIntersecting) {
+          el.classList.add('on');
+          io.unobserve(el);
+        }
+      }
+    }, { threshold: 0.25 });
+    // The hero plays as soon as any of it is on screen (it starts below the fold on wide screens).
+    new IntersectionObserver(([e]) => {
+      heroVisible = e.isIntersecting;
+      if (heroVisible && !still) heroVideos[song].play().catch(() => {}); else heroVideos[song].pause();
+    }).observe(document.getElementById('heroMedia'));
+    document.querySelectorAll('video.inview').forEach((v) => { if (still) v.controls = true; io.observe(v); });
+    document.querySelectorAll('.reveal').forEach((r) => io.observe(r));
+
     setup();
     changes();
   </script>
