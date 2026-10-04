@@ -189,14 +189,24 @@ function relayAppleMusic() {
       const r = await inAppleMusic(`
         if (!mk.isAuthorized) return { error: 'sign in to Apple Music first (Settings > Apple Music)' };
         const sf = mk.storefrontId || 'us';
+        // As the web player asks: newer answers carry the TTML in ttmlLocalizations.
+        const lang = (navigator.language || 'en-US');
+        const why = [];
         for (const kind of ['syllable-lyrics', 'lyrics']) {
           try {
-            const r = await mk.api.music('/v1/catalog/' + sf + '/songs/' + ${JSON.stringify(id)} + '/' + kind);
-            const ttml = r.data?.data?.[0]?.attributes?.ttml;
-            if (ttml) return { ttml, word: kind === 'syllable-lyrics' };
-          } catch (e) { if (e?.errorCode === 'UNAUTHORIZED' || e?.status === 401) return { error: 'Apple Music sign-in expired; sign in again' }; }
+            const r = await mk.api.music('/v1/catalog/' + sf + '/songs/' + ${JSON.stringify(id)} + '/' + kind, { 'l[lyrics]': lang, extend: 'ttmlLocalizations' });
+            const a = r.data?.data?.[0]?.attributes || {};
+            const ttml = a.ttml || a.ttmlLocalizations;
+            if (typeof ttml === 'string' && ttml.trim()) return { ttml, word: kind === 'syllable-lyrics' };
+            why.push(kind + ': ' + (r.status || 'empty'));
+          } catch (e) {
+            const status = e?.status || e?.data?.status;
+            if (e?.errorCode === 'UNAUTHORIZED' || status === 401) return { error: 'Apple Music sign-in expired; sign in again (Settings > Apple Music)' };
+            if (status === 403) return { error: 'Apple Music says this account can’t play this song (subscription or region)' };
+            why.push(kind + ': ' + (status || e?.errorCode || e?.message || e));
+          }
         }
-        return { error: 'Apple Music has no lyrics for this song' };`);
+        return { error: 'Apple Music has no lyrics for this song (' + why.join(', ') + ')' };`);
       if (r?.error) throw new Error(r.error);
       return r;
     }

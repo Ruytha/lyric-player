@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.11.2",
+    "date": "2026-10-04",
+    "notes": [
+      "Signed in to Apple Music: its lyrics are now picked first, ahead of BiniLyrics.",
+      "When one lyrics source fails, the next match is tried, so songs no longer end up with no lyrics.",
+      "Apple Music lyrics in the newer format Apple now uses (needs the 2.11.2 installer)."
+    ]
+  },
+  {
     "version": "2.11.1",
     "date": "2026-10-04",
     "notes": [

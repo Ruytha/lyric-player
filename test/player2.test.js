@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Queue } from '../src/queue.js';
-import { pickBestLyrics, lyricsMatch } from '../src/auto-lyrics.js';
+import { pickBestLyrics, lyricsMatch, fetchBestLyrics } from '../src/auto-lyrics.js';
 import { shiftParagraphs, formatTime } from '../src/ttml-edit.js';
 import { parseTTML } from '../src/ttml-parser.js';
 import { Scrobbler } from '../src/scrobbler.js';
@@ -100,4 +100,21 @@ test('scrobbles after half the song (or 4 min), counting real listening only', (
   s3.start({ title: 'Short', artist: 'A', duration: 20 });
   for (let t = 0; t <= 20; t++) s3.tick(t, true);
   assert.notDeepEqual(sent.at(-1), ['scrobble'], 'songs under 30 s are never scrobbled');
+});
+
+test('Apple Music lyrics win over BiniLyrics, and a failing source falls through to the next', async () => {
+  const song = { title: 'Where Our Blue Is', artist: 'Tatsuya Kitani', duration: 199 };
+  const results = [
+    { source: 'apple', id: '1692289314', title: 'Where Our Blue Is', artists: ['Tatsuya Kitani'], duration: 199, synced: true, wordSync: null },
+    { source: 'bini', title: 'Where Our Blue Is', artists: ['Tatsuya Kitani'], duration: 199, wordSync: true },
+  ];
+  assert.equal(pickBestLyrics(results, song), results[0]);
+  const failed = [];
+  const found = await fetchBestLyrics(results, song, async (r) => {
+    if (r.source === 'apple') throw new Error('Apple Music has no lyrics for this song');
+    return '<tt/>';
+  }, (r) => failed.push(r.source));
+  assert.equal(found.best, results[1]);
+  assert.deepEqual(failed, ['apple']);
+  assert.equal(await fetchBestLyrics([], song, async () => '<tt/>'), null);
 });

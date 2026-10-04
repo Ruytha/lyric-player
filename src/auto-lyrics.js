@@ -29,7 +29,8 @@ export function lyricsMatch(r, { title, artist = '', duration = 0 }) {
     if (d > 15) return 0;          // a different version (live, remix, extended)
     score += d < 3 ? 3 : d < 8 ? 1 : 0;
   }
-  if (r.source === 'amll' || r.wordSync) score += 5;
+  // Apple Music's synced lyrics are word-synced when the song has them (known only once fetched).
+  if (r.source === 'amll' || r.wordSync || (r.source === 'apple' && r.synced)) score += 5;
   else if (r.synced === false) return 0;
   score += SOURCE_RANK[r.source] || 0;
   return score;
@@ -43,4 +44,30 @@ export function pickBestLyrics(results, song) {
     if (s > bestScore) { best = r; bestScore = s; }
   }
   return bestScore >= 12 ? best : null;
+}
+
+/** Every good-enough match, best first (ties keep the search order). */
+export function rankLyrics(results, song) {
+  return results
+    .map((r, i) => ({ r, i, s: lyricsMatch(r, song) }))
+    .filter((x) => x.s >= 12)
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.r);
+}
+
+/**
+ * Fetches the best match that actually delivers lyrics: when one source fails
+ * (Apple Music signed out, a site down), the next match is tried.
+ * Returns { best, ttml } or null when nothing matched; throws the last error.
+ */
+export async function fetchBestLyrics(results, song, getTtml, onFail = () => {}) {
+  let lastError = null;
+  for (const r of rankLyrics(results, song)) {
+    try {
+      const ttml = await getTtml(r);
+      if (ttml) return { best: r, ttml };
+    } catch (e) { lastError = e; onFail(r, e); }
+  }
+  if (lastError) throw lastError;
+  return null;
 }

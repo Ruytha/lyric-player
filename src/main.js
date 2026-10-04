@@ -20,7 +20,7 @@ import { Queue } from './queue.js';
 import { LibraryPanel } from './library-ui.js';
 import { bindWindowControls } from './window-controls.js';
 import { SystemPlayback, normalizeTrack } from './system-media.js';
-import { pickBestLyrics } from './auto-lyrics.js';
+import { fetchBestLyrics } from './auto-lyrics.js';
 import { diagnostics } from './diagnostics.js';
 import { buildAboutRow, buildLastfmRow, updateSite, UPDATE_SITE } from './about-ui.js';
 import { Scrobbler } from './scrobbler.js';
@@ -1508,10 +1508,12 @@ async function pcLyrics(token, info, duration) {
   try {
     const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable() });
     if (token !== state.loadToken) return;
-    const best = pickBestLyrics(results, { title: info.title, artist: info.artist, duration: duration > 0 ? duration : 0 });
-    if (!best) { renderer.setLyrics(null, 'No lyrics found for this song — press / to search yourself'); done('No lyrics found. Press / in the player to search.'); return; }
-    const ttml = await getTtml(best);
-    if (token !== state.loadToken || state.model) return;
+    const found = await fetchBestLyrics(results, { title: info.title, artist: info.artist, duration: duration > 0 ? duration : 0 }, getTtml,
+      (r, e) => diagnostics.error(`pc lyrics (${r.source}, trying the next)`, e));
+    if (token !== state.loadToken) return;
+    if (!found) { renderer.setLyrics(null, 'No lyrics found for this song — press / to search yourself'); done('No lyrics found. Press / in the player to search.'); return; }
+    const { best, ttml } = found;
+    if (state.model) return;
     const safe = `${best.artists[0] ? `${best.artists[0]} - ` : ''}${best.title}`.replace(/[\\/:*?"<>|]+/g, ' ');
     if (loadTTMLText(ttml, `${safe}.ttml`, { save: false, source: best.source })) {
       savePcLyrics(state.external.key, { ttml, name: `${safe}.ttml`, source: best.source });
@@ -1881,12 +1883,14 @@ async function autoLyrics(token, knownDuration = 0) {
   try {
     const { results } = await searchLyrics([info.title, info.artist].filter(Boolean).join(' '), { apple: settings.get('appleLyrics') && appleMusicAvailable() });
     if (token !== state.loadToken || id !== state.songId) return;
-    const best = pickBestLyrics(results, { ...info, duration });
-    if (!best) {
+    const found = await fetchBestLyrics(results, { ...info, duration }, getTtml,
+      (r, e) => diagnostics.error(`auto lyrics (${r.source}, trying the next)`, e));
+    if (token !== state.loadToken || id !== state.songId) return;
+    if (!found) {
       renderer.setLyrics(null, 'No lyrics found for this song — drop a .ttml file, or press / to search yourself');
       return;
     }
-    const ttml = await getTtml(best);
+    const { best, ttml } = found;
     if (token !== state.loadToken || id !== state.songId || (state.lyricsFor === id && state.model)) return;
     const safe = `${best.artists[0] ? `${best.artists[0]} - ` : ''}${best.title}`.replace(/[\\/:*?"<>|]+/g, ' ');
     if (loadTTMLText(ttml, `${safe}.ttml`, { source: best.source })) {
