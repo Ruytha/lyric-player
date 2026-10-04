@@ -78,14 +78,14 @@ export class SettingsPanel {
       const head = h('div', 'set-head');
       head.appendChild(label);
       if (s.type === 'range') {
+        // One line, as in macOS settings: name, slider, value.
         const out = h('output', 'set-value');
-        head.appendChild(out);
-        row.appendChild(head);
         const input = h('input', 'set-slider');
         Object.assign(input, { type: 'range', id, min: s.min, max: s.max, step: s.step });
         input.addEventListener('input', () => this.settings.set(s.key, Number(input.value)));
         input.addEventListener('dblclick', () => this.settings.set(s.key, s.def));
-        row.appendChild(input);
+        head.append(input, out);
+        row.appendChild(head);
         this.controls.set(s.key, { s, input, out });
       } else if (s.type === 'toggle') {
         const input = h('input', 'set-switch');

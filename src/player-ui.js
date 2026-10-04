@@ -39,15 +39,22 @@ export class PlayerUI {
     this.wasPlaying = null;
     this.getDuration = () => audio.duration; // replaced while following another app
 
+    // The menu lives at the top of the page: inside the player, Chromium’s
+    // backdrop blur skips the controls drawn after it, so they showed through sharp.
+    document.body.appendChild(this.el.menu);
+
     this.bindTransport();
     this.bindProgress();
     this.bindPopover(this.el.menuBtn, this.el.menu, (e) => {
+      const sub = e.target.closest('[data-sub]');
+      if (sub) { this.toggleSubmenu(sub); return false; }
       const btn = e.target.closest('[data-action]');
       if (!btn) return false;
       this.handlers.onMenuAction(btn.dataset.action);
       // Offset buttons keep the menu open so they can be clicked repeatedly.
       return !btn.dataset.action.startsWith('offset');
     });
+    addEventListener('resize', () => { if (!this.el.menu.hidden) this.placeMenu(this.el.menu); });
     this.bindVolume();
     this.bindBottomRow();
     for (const m of [this.el.title, this.el.artist]) this.bindMarquee(m);
@@ -164,12 +171,9 @@ export class PlayerUI {
       for (const other of document.querySelectorAll('.menu')) other.hidden = true;
       pop.hidden = !open;
       btn.setAttribute('aria-expanded', String(open));
-      // The main menu scrolls inside the room it has above or below its button.
       if (open && pop.classList.contains('main-menu')) {
-        pop.style.maxHeight = '';
-        const b = btn.getBoundingClientRect(), r = pop.getBoundingClientRect();
-        const room = r.top < b.top ? b.top - 16 : innerHeight - b.bottom - 16;
-        if (pop.offsetHeight > room) pop.style.maxHeight = `${Math.max(200, room)}px`;
+        for (const s of pop.querySelectorAll('[data-sub]')) this.toggleSubmenu(s, false);
+        this.placeMenu(pop);
       }
     });
     pop.addEventListener('click', (e) => {
@@ -212,6 +216,32 @@ export class PlayerUI {
     };
     this.audio.addEventListener('volumechange', show);
     show();
+  }
+
+  /** Opens or closes a submenu in place, like the ones in Apple’s menus. */
+  toggleSubmenu(btn, open = btn.getAttribute('aria-expanded') !== 'true') {
+    btn.setAttribute('aria-expanded', String(open));
+    document.getElementById(btn.dataset.sub).hidden = !open;
+    const menu = btn.closest('.menu');
+    if (!menu.hidden) this.placeMenu(menu);
+  }
+
+  /**
+   * Keeps the main menu on screen, next to its button: it opens towards the
+   * side with more room, slides over the button rather than scrolling when it
+   * doesn’t fit, and grows out of the button.
+   */
+  placeMenu(pop) {
+    const M = 12, GAP = 10;
+    const b = this.el.menuBtn.getBoundingClientRect();
+    pop.style.maxHeight = `${innerHeight - 2 * M}px`;
+    const h = pop.offsetHeight, w = pop.offsetWidth;
+    const up = b.top > innerHeight - b.bottom;
+    const top = Math.max(M, Math.min(up ? b.top - GAP - h : b.bottom + GAP, innerHeight - M - h));
+    const left = Math.max(M, Math.min(b.right - w, innerWidth - M - w));
+    pop.style.top = `${top}px`;
+    pop.style.left = `${left}px`;
+    pop.style.transformOrigin = `${b.left + b.width / 2 - left}px ${b.top + b.height / 2 - top}px`;
   }
 
   bindBottomRow() {
@@ -268,6 +298,7 @@ export class PlayerUI {
     if (playing !== this.wasPlaying) {
       this.wasPlaying = playing;
       this.el.play.classList.toggle('playing', playing);
+      document.documentElement.classList.toggle('is-playing', playing); // the library's bars move only while playing
       this.el.play.setAttribute('aria-label', playing ? 'Pause' : 'Play');
       this.artSpring.setTarget(playing ? 1 : 0.9);
     }

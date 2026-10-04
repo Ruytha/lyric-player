@@ -87,7 +87,7 @@ html.ios .sheet { top: calc(env(safe-area-inset-top) + 8px); bottom: calc(env(sa
 html.ios .toasts { bottom: calc(env(safe-area-inset-bottom) + 28px); }
 html.ios .lyric-search { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 /* No element full screen on iPhone; the app already fills the screen. */
-html.ios #fullscreenBtn, html.ios #fullscreenItem { display: none !important; }
+html.ios #fullscreenItem { display: none !important; }
 html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 
 /* Credits */
@@ -126,71 +126,82 @@ html.ios { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none
   @keyframes emoji-rise { 0%, 100% { opacity: 0; transform: translateY(-20vh); } 30%, 70% { opacity: 1; transform: translateY(-22vh); } }
 }
 
-/* ••• menu: iOS-style context menu. Quick tiles on top, grouped rows with
-   icons on the right, compact links at the bottom. */
+/* ••• menu: one glass platter like Apple's menus. Three quick actions on top,
+   plain rows with the icon on the right, a thin line between groups, two
+   submenus that open in place, and links at the bottom. */
 #menu.main-menu {
-  width: 290px; min-width: 0; padding: 8px;
-  border-radius: 22px;
-  max-height: min(640px, calc(100dvh - 140px));
+  position: fixed; right: auto; bottom: auto; /* placed next to the ••• button by player-ui.js */
+  width: 280px; min-width: 0; padding: 6px;
+  border-radius: 24px;
   overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
   font-size: 15px;
 }
 #menu.main-menu::-webkit-scrollbar { display: none; }
-.am-mode .meta #menu.main-menu { max-height: min(640px, calc(100dvh - var(--p) * 300)); }
+#menu [hidden] { display: none !important; }
 
-#menu .mi-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-bottom: 8px; }
+#menu .mi-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding-bottom: 6px; }
 #menu .mi-tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
-  min-height: 66px; padding: 10px 4px 8px; border: 0; border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08); color: inherit;
-  font-size: 11.5px; font-weight: 600; line-height: 1.15; text-align: center;
-  transition: background .15s, transform .15s var(--spring, ease);
+  min-height: 62px; padding: 8px 4px 7px; border: 0; border-radius: 18px;
+  background: none; color: inherit;
+  font-size: 12px; font-weight: 500; line-height: 1.15; text-align: center;
+  transition: background .15s, transform .2s var(--spring, ease);
 }
-#menu .mi-tile:hover { background: rgba(255, 255, 255, 0.15); }
+#menu .mi-tile:hover { background: rgba(255, 255, 255, 0.12); }
 #menu .mi-tile:active { transform: scale(0.94); }
-#menu .mi-tile .mi-icon { width: 24px; height: 24px; }
-#menu .mi-tile[aria-checked="true"] { background: rgba(255, 255, 255, 0.92); color: #15171d; }
-#menu .mi-tile[aria-checked="true"] .mi-icon rect[fill] { fill: #15171d; }
-.desktop #menu .mi-tile.desktop-only-item { display: flex !important; }
+#menu .mi-tile .mi-icon { width: 22px; height: 22px; opacity: 1; }
+#menu .mi-tile[aria-checked="true"] { background: rgba(255, 255, 255, 0.9); color: #15171d; }
 
-#menu .mi-group { padding: 4px 0; border-radius: 14px; background: rgba(255, 255, 255, 0.045); }
-#menu .mi-group + .mi-group { margin-top: 8px; }
-#menu .mi-group > button, #menu .mi-group > .menu-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; min-height: 42px; padding: 7px 14px; border: 0; border-radius: 10px;
-  background: none; color: inherit; text-align: left; font-weight: 500;
+#menu .mi-group { position: relative; padding: 6px 0; }
+#menu .mi-group::before,
+#menu .mi-foot::before {
+  content: ''; position: absolute; top: 0; left: 14px; right: 14px;
+  height: 1px; background: rgba(255, 255, 255, 0.14);
 }
-#menu .mi-group > button:hover { background: rgba(255, 255, 255, 0.09); }
-#menu .mi-group > button + button, #menu .mi-group > * + .menu-row { box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.08); }
-#menu .mi-group > button:hover + button { box-shadow: none; }
-#menu .mi-group > [hidden] { display: none !important; }
-#menu .mi-text { display: flex; flex-direction: column; min-width: 0; }
-#menu .mi-sub { font-size: 12px; font-weight: 500; color: var(--label-2); margin-top: 1px; }
+#menu .mi-group > button, #menu .mi-submenu > button, #menu .menu-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 38px; padding: 6px 12px 6px 14px; border: 0; border-radius: 14px;
+  background: none; color: inherit; text-align: left; font-weight: 400;
+}
+#menu .mi-group > button:hover, #menu .mi-submenu > button:hover { background: rgba(255, 255, 255, 0.12); }
+#menu .mi-text { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+#menu .mi-sub { font-size: 12px; font-weight: 400; color: var(--label-2); margin-top: 1px; }
 #menu .mi-icon {
   flex: none; width: 20px; height: 20px;
-  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
-  opacity: 0.9;
+  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0.85;
 }
-#menu .mi-group .mi-icon { opacity: 0.75; }
-/* Apple Music Mode: a check over the icon when it's on. */
-#menu .mi-group > [aria-checked="true"] .mi-label::after { content: '  ✓'; font-weight: 700; color: #fa586a; }
-#menu .mi-group > [aria-checked="true"] .mi-icon { color: #fa586a; opacity: 1; }
-#menu .mi-group > [aria-checked="true"] .mi-sub { color: #fa8a97; }
+/* Submenus: the chevron turns down and the items open underneath, indented. */
+#menu .mi-chev {
+  flex: none; width: 14px; height: 14px; margin-right: 2px;
+  fill: none; stroke: var(--label-2); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform .25s var(--spring, ease);
+}
+#menu [aria-expanded="true"] .mi-chev { transform: rotate(90deg); }
+#menu .mi-submenu { margin: 2px 0 4px 10px; padding-left: 4px; border-left: 1px solid rgba(255, 255, 255, 0.14); animation: sub-in .25s ease-out; }
+#menu .mi-submenu > button, #menu .mi-submenu > .menu-row { min-height: 36px; font-size: 14.5px; }
+@keyframes sub-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Something switched on: a pink check after the name, the icon in pink. */
+#menu .mi-group [aria-checked="true"] .mi-label::after { content: '  ✓'; font-weight: 700; color: #fa586a; }
+#menu .mi-group [aria-checked="true"] .mi-icon { color: #fa586a; opacity: 1; }
+#menu .mi-group [aria-checked="true"] .mi-sub { color: #fa8a97; }
 #menu .mi-icon .cut { opacity: 0; }
 #karaokeItem[aria-checked="true"] .mi-icon .cut { opacity: 1; }
 
+#menu .mi-offset { justify-content: space-between; }
 #menu .mi-offset .stepper { gap: 4px; }
-#menu .mi-offset .stepper > button:not(.offset-val) { width: 30px; height: 30px; font-size: 17px; }
+#menu .mi-offset .stepper > button:not(.offset-val) { width: 28px; height: 28px; font-size: 17px; }
 #menu .mi-offset .offset-val,
 html.glass #menu .mi-offset .offset-val {
-  width: auto; height: 30px; padding: 0 6px; border-radius: 8px;
+  width: auto; height: 28px; padding: 0 6px; border-radius: 8px;
   background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 #menu .mi-offset .offset-val:hover { background: rgba(255, 255, 255, 0.08); }
-#menu .mi-offset output { min-width: 58px; font-size: 14px; }
+#menu .mi-offset output { min-width: 54px; font-size: 13.5px; }
 
-#menu .mi-foot { display: flex; justify-content: center; align-items: center; gap: 2px; padding: 10px 4px 4px; color: var(--label-2); font-size: 12.5px; }
-#menu .mi-foot button { border: 0; background: none; color: var(--label-2); font: inherit; font-weight: 600; padding: 4px 6px; border-radius: 6px; }
+#menu .mi-foot { position: relative; display: flex; justify-content: center; align-items: center; gap: 2px; padding: 8px 4px 2px; color: var(--label-2); font-size: 12.5px; }
+#menu .mi-foot button { border: 0; background: none; color: var(--label-2); font: inherit; font-weight: 500; padding: 4px 6px; border-radius: 6px; }
 #menu .mi-foot button:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
 
 /* Settings: drop-down choices, global shortcuts, phone remote */

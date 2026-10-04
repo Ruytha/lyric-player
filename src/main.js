@@ -236,14 +236,13 @@ const renderer = new AmllLyricsRenderer($('lyrics'), {
 });
 const emoji = new EmojiReactions();
 renderer.setLyrics(null, document.documentElement.classList.contains('ios')
-  ? 'Play a song in the Music app, or add your own songs and lyrics with ••• → Load new song'
+  ? 'Play a song in the Music app, or add your own songs and lyrics with ••• › Open › Load New Song'
   : 'Play a song in Spotify or Apple Music, drop a song and its .ttml here, or open your library with ☰');
 
 // ---------------------------------------------------------------------------
 // Settings (lyrics, background, Liquid Glass)
 
 const settingsPanel = new SettingsPanel($('settingsSheet'), settings, {
-  onClose: () => $('settingsBtn').setAttribute('aria-expanded', 'false'),
   custom: {
     appleAccount: buildAppleAccountRow,
     discordStatus: (row) => { discordStatusRow = row; row.hidden = true; },
@@ -259,13 +258,8 @@ const settingsPanel = new SettingsPanel($('settingsSheet'), settings, {
     remoteInfo: (row) => { refreshRemoteRow = buildRemoteRow(row, { native, settings, toast }); },
   },
 });
-$('settingsBtn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  settingsPanel.toggle();
-  $('settingsBtn').setAttribute('aria-expanded', String(settingsPanel.isOpen));
-});
 document.addEventListener('pointerdown', (e) => {
-  if (settingsPanel.isOpen && !e.target.closest('#settingsSheet, #settingsBtn, .menu')) settingsPanel.close();
+  if (settingsPanel.isOpen && !e.target.closest('#settingsSheet, .menu')) settingsPanel.close();
 });
 
 settings.subscribe((key, value, s) => {
@@ -372,16 +366,13 @@ function markActive() {
 addEventListener('pointermove', markActive, { passive: true });
 function syncFullscreen() {
   const on = !!document.fullscreenElement;
-  if ($('fullscreenBtn').getAttribute('aria-pressed') === String(on)) return;
-  $('fullscreenBtn').setAttribute('aria-pressed', String(on));
-  $('fullscreenBtn').setAttribute('aria-label', on ? 'Exit full screen' : 'Full screen');
+  if ($('fullscreenItem').getAttribute('aria-checked') === String(on)) return;
   $('fullscreenItem').setAttribute('aria-checked', String(on));
   markActive();
   renderer.remeasure();
 }
 document.addEventListener('fullscreenchange', syncFullscreen);
 addEventListener('resize', syncFullscreen);
-$('fullscreenBtn').addEventListener('click', toggleFullscreen);
 
 // ---------------------------------------------------------------------------
 // Album covers from Apple Music, including animated covers
@@ -719,7 +710,7 @@ window.lyricPlayerNative?.onMiniCommand?.(({ cmd, value }) => {
   else if (cmd === 'bar') toggleBar();
   else if (cmd === 'close-bar') toggleBar(false);
   else if (cmd === 'closed-bar') { barOpen = false; $('barItem').setAttribute('aria-checked', 'false'); sendTray(); }
-  else if (cmd === 'settings') { settingsPanel.open(); $('settingsBtn').setAttribute('aria-expanded', 'true'); }
+  else if (cmd === 'settings') settingsPanel.open();
   else if (cmd === 'seek' && Number.isFinite(value)) seek(value);
   else if (cmd === 'volume' && Number.isFinite(value)) audio.volume = Math.min(1, Math.max(0, value));
   setTimeout(sendMiniState, 50);

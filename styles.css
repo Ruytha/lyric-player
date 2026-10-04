@@ -242,10 +242,11 @@ body.dragover.over-art .art-drop { opacity: 1; }
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   z-index: 20;
   font-size: 15px;
-  animation: menu-in .3s var(--spring);
+  animation: menu-in .42s var(--spring);
   transform-origin: bottom right;
 }
-@keyframes menu-in { from { opacity: 0; transform: scale(.9); } }
+/* Menus grow out of the button that opens them, with a little spring. */
+@keyframes menu-in { from { opacity: 0; transform: scale(.4); } 60% { opacity: 1; } }
 .menu > button, .menu-row {
   display: flex;
   align-items: center;
@@ -906,26 +907,28 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
 .sheet-close { width: 34px; padding: 0; display: grid; place-items: center; }
 .sheet-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 .sheet-body { flex: 1; overflow-y: auto; padding: 4px 16px 24px; overscroll-behavior: contain; scrollbar-width: thin; }
+/* Group titles in bold title case, as in macOS 26 settings (not small capitals). */
 .sheet-section {
-  margin: 18px 8px 8px;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--label-2);
+  margin: 20px 8px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  color: #fff;
 }
 .sheet-group {
-  border-radius: 20px;
+  border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
 }
-.set-row { padding: 12px 16px; }
-.set-row + .set-row { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+/* Rows about 44 px tall; the divider starts at the text, like Apple’s lists. */
+.set-row { position: relative; padding: 8px 16px; }
+.set-row + .set-row::before { content: ''; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: rgba(255, 255, 255, 0.08); }
 .set-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
+.set-range .set-head { display: grid; grid-template-columns: 118px minmax(80px, 1fr) 62px; gap: 12px; /* fixed label column so the sliders line up */ }
+.set-range .set-value { text-align: right; font-size: 13.5px; }
 .set-label { font-weight: 500; }
 .set-value { font-variant-numeric: tabular-nums; color: var(--label-2); font-size: 14px; }
-.set-hint { margin-top: 4px; font-size: 12.5px; color: var(--label-2); }
+.set-hint { margin-top: 2px; font-size: 12.5px; line-height: 1.35; color: var(--label-2); }
 
 /* Slider: thin track filled up to the value, pill knob that swells while held. */
 .set-slider {
@@ -934,7 +937,7 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
   display: block;
   width: 100%;
   height: 28px;
-  margin: 6px 0 0;
+  margin: 0;
   background: transparent;
   cursor: pointer;
   --p: 50%;
@@ -949,9 +952,9 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
 .set-slider::-moz-range-progress { height: 6px; border-radius: 999px; background: #fff; }
 .set-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 30px;
-  height: 20px;
-  margin-top: -7px;
+  width: 26px;
+  height: 18px;
+  margin-top: -6px;
   border-radius: 999px;
   background: #fff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
@@ -1026,7 +1029,6 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
 }
 .seg[aria-checked="true"] { background: rgba(255, 255, 255, 0.22); color: #fff; font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15); }
 
-#settingsBtn[aria-expanded="true"] { color: #fff; }
 
 /* ------------------------------------------------------------------------ */
 /* Liquid Glass
@@ -1063,7 +1065,7 @@ html.glass .menu,
 html.glass .sheet,
 html.glass .toast {
   --lg-tint: rgba(22, 26, 36, 0.76); /* opaque enough for 4.5:1 text over bright covers */
-  --lg-blur: 22px;
+  --lg-blur: 44px; /* heavy, like Apple’s panels: the cover shows as colour, not shapes */
 }
 html.glass .sheet {
   box-shadow:
@@ -1266,11 +1268,6 @@ html.lg-supported .lg-refract.ls-panel {
 /* ------------------------------------------------------------------------ */
 /* Full screen */
 
-#fullscreenBtn .i-exit { display: none; }
-#fullscreenBtn[aria-pressed="true"] .i-enter { display: none; }
-#fullscreenBtn[aria-pressed="true"] .i-exit { display: inline; }
-#fullscreenBtn[aria-pressed="true"] { background: none; color: rgba(255, 255, 255, 0.6); }
-#fullscreenBtn[aria-pressed="true"]:hover { color: #fff; }
 html.idle, html.idle * { cursor: none !important; }
 .controls { display: block; }
 
@@ -1356,13 +1353,6 @@ html.lg-supported.am-mode .meta .lg-refract.round {
 .am-mode .meta .round:hover { background: rgba(255, 255, 255, 0.1); }
 .am-mode .meta .round svg { width: 90%; height: 90%; }
 .am-mode #favBtn svg { stroke-width: 1.6; }
-.am-mode .meta .menu {
-  top: calc(100% + 8px);
-  bottom: auto;
-  transform-origin: top right;
-  max-height: calc(100dvh - var(--p) * 300);
-  overflow-y: auto;
-}
 
 /* Lyrics fill the rest of the screen, left-aligned under the header. */
 .am-mode .lyrics {
@@ -1457,12 +1447,34 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 5px; border-radius: 5p
 .lib-tabs { padding: 0 16px 6px; }
 .lib-tabs .segmented { width: 100%; }
 .lib-body { position: relative; }
-.lr-list { margin-bottom: 4px; }
-.lr { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 4px; }
-.lr + .lr { border-top: 1px solid rgba(255, 255, 255, 0.05); }
-.lr:hover { background: rgba(255, 255, 255, 0.06); }
-.lr.current .lib-title { color: #fff; }
-.lr.current .lib-title::before { content: '♪ '; color: #ff8095; }
+/* Song lists sit straight on the panel, like Apple Music: no box around them,
+   a hairline that starts after the cover, a rounded highlight on hover. */
+.sheet .sheet-group.lr-list { margin: 0 -8px 4px; border-radius: 0; background: none; overflow: visible; }
+.lr { position: relative; display: flex; align-items: center; gap: 2px; padding-right: 4px; border-radius: 12px; }
+.lr + .lr::before { content: ''; position: absolute; top: 0; left: 60px; right: 10px; height: 1px; background: rgba(255, 255, 255, 0.09); }
+.lr:hover { background: rgba(255, 255, 255, 0.08); }
+.lr:hover::before, .lr:hover + .lr::before { opacity: 0; }
+.lr-list .lib-title { font-size: 15px; font-weight: 400; color: #fff; }
+.lr-list .lib-sub { font-size: 13px; }
+/* The song playing: Apple Music’s bars over its cover, still while paused. */
+.lib-art { position: relative; }
+.lr.current .lib-art::after {
+  content: ''; position: absolute; inset: 0;
+  background:
+    linear-gradient(#fa586a, #fa586a) 11px 100% / 4px 45% no-repeat,
+    linear-gradient(#fa586a, #fa586a) 18px 100% / 4px 75% no-repeat,
+    linear-gradient(#fa586a, #fa586a) 25px 100% / 4px 55% no-repeat,
+    rgba(0, 0, 0, 0.5);
+  background-origin: content-box; padding: 11px 0;
+}
+html.is-playing .lr.current .lib-art::after { animation: now-bars 1.1s ease-in-out infinite alternate; }
+@keyframes now-bars {
+  0% { background-size: 4px 45%, 4px 75%, 4px 55%, auto; }
+  33% { background-size: 4px 85%, 4px 35%, 4px 70%, auto; }
+  66% { background-size: 4px 30%, 4px 90%, 4px 40%, auto; }
+  100% { background-size: 4px 70%, 4px 50%, 4px 95%, auto; }
+}
+@media (prefers-reduced-motion: reduce) { html.is-playing .lr.current .lib-art::after { animation: none; } }
 .lr-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 7px 6px 7px 10px; border: 0; background: none; text-align: left; }
 .lr-dur { flex: none; font-size: 12px; color: var(--label-2); font-variant-numeric: tabular-nums; }
 .lr-more { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--label-3); padding: 0; opacity: 0; transition: opacity .15s, background .15s; }
@@ -1640,7 +1652,6 @@ html.am-mode.now-playing .now-bg.motion-on ~ .player .art { visibility: hidden; 
 html.am-mode.now-playing .meta { margin: 0 0 calc(var(--p) * 30); }
 html.am-mode.now-playing .title { font-size: calc(var(--p) * 44); }
 html.am-mode.now-playing .artist { font-size: calc(var(--p) * 40); }
-html.am-mode.now-playing .meta .menu { top: auto; bottom: calc(100% + 8px); transform-origin: bottom right; }
 html.am-mode.now-playing .controls,
 html.am-mode.now-playing .app .controls {
   position: static;
@@ -1650,4 +1661,14 @@ html.am-mode.now-playing .app .controls {
   opacity: 1;
   transform: none;
   pointer-events: auto;
+}
+
+/* An open panel dims the player a little, as Apple Music does behind its sheets. */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 35; pointer-events: none;
+  background: rgba(0, 0, 0, 0.22); opacity: 0; transition: opacity .35s ease;
+}
+body:has(.sheet.open)::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  @keyframes menu-in { from { opacity: 0; } }
 }

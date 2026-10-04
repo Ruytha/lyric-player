@@ -27,7 +27,7 @@ export const SCHEMA = [
   { key: 'autoLyrics', label: 'Find lyrics automatically', hint: 'When a song has no lyrics, search every source and use the best match', type: 'toggle', def: true },
   { key: 'translation', label: 'Translation', type: 'toggle', def: false },
   { key: 'romanization', label: 'Romanization', type: 'toggle', def: true },
-  { key: 'translateTo', label: 'Translate lyrics to', hint: 'For ••• → Translate lyrics, when the lyrics have no translation', type: 'choice', def: defaultLanguage(), options: LANGUAGES, select: true },
+  { key: 'translateTo', label: 'Translate lyrics to', hint: 'For ••• › Translate Lyrics, when the lyrics have no translation', type: 'choice', def: defaultLanguage(), options: LANGUAGES, select: true },
   { key: 'lookupWriters', label: 'Find songwriters online', hint: 'When the lyrics don’t list who wrote the song, look it up on MusicBrainz and show it after the last line', type: 'toggle', def: true },
   { key: 'autoRoman', label: 'Romanize when missing', hint: 'Korean and Japanese kana are romanized here; lines with kanji or Chinese characters borrow NetEase or QQ Music’s romanization for the same song', type: 'toggle', def: true },
 

@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.13.0",
+    "date": "2026-10-04",
+    "notes": [
+      "The ••• menu is shorter and fits on the screen: Card, Clip and Full Screen at the top, then short groups. Editing tools are under Lyrics Tools, and loading songs, lyrics files and covers is under Open.",
+      "Menus, Settings and the Library look more like Apple Music: one glass panel with plain rows and thin lines, instead of a box around every row.",
+      "Settings take half the room: each slider sits on one line with its name and value.",
+      "The Library marks the song playing with moving bars on its cover, as in Apple Music. They stop while paused.",
+      "Under the controls are Lyrics, AirPlay and Library, as in Apple Music. Settings and Full Screen are in the ••• menu, or press Ctrl+, and F.",
+      "The menu grows out of the ••• button, and the player dims a little behind Settings and the Library.",
+      "Fixed: the player controls showed through the ••• menu instead of being blurred."
+    ]
+  },
+  {
     "version": "2.12.0",
     "date": "2026-10-04",
     "notes": [

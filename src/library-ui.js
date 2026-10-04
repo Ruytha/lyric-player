@@ -112,7 +112,7 @@ export class LibraryPanel {
     const sub = [s.artist, s.album].filter(Boolean).join(' · ') || (s.path ? s.folder || '' : '');
     return `<div class="lr${cur ? ' current' : ''}" data-id="${esc(s.id)}"${index != null ? ` data-index="${index}"` : ''}${drag ? ' draggable="true"' : ''} data-kind="${kind}">
       ${drag ? `<span class="lr-grip" aria-hidden="true">${ICON.grip}</span>` : ''}
-      <button class="lr-main" data-play type="button">
+      <button class="lr-main" data-play type="button"${cur ? ' aria-current="true"' : ''}>
         <span class="lib-art">${s.thumb ? `<img src="${esc(s.thumb)}" alt="" loading="lazy">` : ''}</span>
         <span class="lib-text"><span class="lib-title">${esc(s.title || s.audioName || 'Unknown')}</span><span class="lib-sub">${esc(sub)}${s.hasLyrics ? '' : `${sub ? ' · ' : ''}<em>no lyrics</em>`}</span>${hit ? `<span class="lib-hit">“${esc(hit)}”</span>` : ''}</span>
         <span class="lr-dur">${fmtDur(s.duration)}</span>
