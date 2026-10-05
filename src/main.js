@@ -141,6 +141,7 @@ const settings = new Settings();
 const reactor = new AudioReactor(audio);
 const fx = new AudioFx();
 reactor.fx = fx;
+fx.onMono = () => toast('This song is mono, so Karaoke can’t take the voice out', { key: 'karaoke', ms: 4000 });
 const queue = new Queue();
 
 // Backgrounds: AMLL's WebGL mesh gradient, or our blurred artwork (also the
@@ -272,6 +273,7 @@ settings.subscribe((key, value, s) => {
   if (key === 'motionArt') applyCover();
   if (key === 'sideCover') applyNowPlaying();
   if (key === null || key === 'karaoke') { fx.setKaraoke(s.karaoke); $('karaokeItem')?.setAttribute('aria-checked', String(!!s.karaoke)); }
+  if (key === null || key === 'karaokeVoice') fx.setKaraokeVoice(s.karaokeVoice);
   if (key === null || key === 'levelVolume') fx.setLevel(s.levelVolume);
   if (key === null || key === 'eqOn' || key === 'eqGains') { fx.setEq(s.eqOn, parseGains(s.eqGains)); updateEqRow?.(); }
   if (key === null || key === 'emojiWords') emoji.setCustomWords(s.emojiWords);
@@ -1595,6 +1597,14 @@ async function songUrl(id) {
   return null;
 }
 
+/** Where the song's last sung line ends (song time, seconds), from its own synced lyrics; else null. */
+function lastSungAt(id) {
+  if (state.lyricsFor !== id || !state.model?.lines?.length || state.model.timing === 'none') return null;
+  let end = 0;
+  for (const l of state.model.lines) end = Math.max(end, l.end ?? l.begin ?? 0, l.background?.end ?? 0);
+  return end > 0 ? end - clock.offsetMs / 1000 : null;
+}
+
 async function prepareMix(forId) {
   const m = { forId, ready: false };
   state.mix = m;
@@ -1606,8 +1616,8 @@ async function prepareMix(forId) {
   const b = await analysisFor(nextId, u.url);
   if (u.owned) URL.revokeObjectURL(u.url);
   if (state.mix !== m || !a || !b) return;
-  Object.assign(m, { nextId, a, b, plan: planMix(a, b), ready: true });
-  diagnostics.note(`automix: ${a.bpm.toFixed(1)} → ${b.bpm.toFixed(1)} BPM, ×${m.plan.rate.toFixed(3)}, ${m.plan.secs.toFixed(1)} s from ${m.plan.at.toFixed(1)} s`);
+  Object.assign(m, { nextId, a, b, plan: planMix(a, b, { vocalEnd: lastSungAt(forId) }), ready: true });
+  diagnostics.note(`automix: ${a.bpm.toFixed(1)} → ${b.bpm.toFixed(1)} BPM, ×${m.plan.rate.toFixed(3)}, ${m.plan.secs.toFixed(1)} s from ${m.plan.at.toFixed(1)} s (bars ${m.plan.outGrid.downbeat != null ? "yes" : "no"}, outro ${a.outro?.toFixed(1)} s)`);
 }
 
 function runMix(m) {

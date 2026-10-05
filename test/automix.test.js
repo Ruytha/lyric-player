@@ -5,19 +5,22 @@ import { analyzeSamples, tempoRatio, planMix, alignedPosition, gridNear } from '
 const SR = 22050;
 
 /** A drum loop: kick on every beat, hats in between, quiet pad, with silence around it. */
-function track({ bpm, first, secs, lead = 0, trail = 0, seed = 1 }) {
+function track({ bpm, first, secs, lead = 0, trail = 0, seed = 1, accent = 1, fade = 0 }) {
   const n = Math.floor((lead + secs + trail) * SR);
   const x = new Float32Array(n);
   let r = seed;
   const rand = () => ((r = (r * 16807) % 2147483647) / 2147483647) * 2 - 1;
   const period = 60 / bpm;
   for (let i = Math.floor(lead * SR); i < (lead + secs) * SR; i++) x[i] = 0.02 * Math.sin(2 * Math.PI * 220 * i / SR) + 0.01 * rand();
-  for (let t = lead + first; t < lead + secs - 0.3; t += period) {
+  for (let t = lead + first, beat = 0; t < lead + secs - 0.3; t += period, beat++) {
     const k0 = Math.floor(t * SR);
-    for (let j = 0; j < 0.18 * SR && k0 + j < n; j++) x[k0 + j] += 0.8 * Math.exp(-j / (0.04 * SR)) * Math.sin(2 * Math.PI * (60 + 90 * Math.exp(-j / (0.01 * SR))) * j / SR);
+    const amp = beat % 4 === 0 ? 0.8 : 0.8 / accent; // accent > 1: beat one of each bar is louder
+    for (let j = 0; j < 0.18 * SR && k0 + j < n; j++) x[k0 + j] += amp * Math.exp(-j / (0.04 * SR)) * Math.sin(2 * Math.PI * (60 + 90 * Math.exp(-j / (0.01 * SR))) * j / SR);
     const h = Math.floor((t + period / 2) * SR);
     for (let j = 0; j < 0.03 * SR && h + j < n; j++) x[h + j] += 0.15 * Math.exp(-j / (0.005 * SR)) * rand();
   }
+  // A fade-out over the last `fade` seconds.
+  for (let i = Math.floor((lead + secs - fade) * SR); fade && i < (lead + secs) * SR; i++) x[i] *= ((lead + secs) * SR - i) / (fade * SR);
   return x;
 }
 
@@ -58,4 +61,45 @@ test('mix plan starts on a beat before the end; incoming beats line up', () => {
   const phase = ((pos - b.offset) / b.period) % 1;
   assert.ok(Math.abs(phase - 0.25) < 1e-6, `phase ${phase}`);
   assert.ok(Math.abs(pos - p.inAt) < b.period);
+});
+
+test('finds bars: the accented beat of each four', () => {
+  const bpm = 120, first = 0.3, lead = 1;
+  const a = analyzeSamples(track({ bpm, first, secs: 40, lead, accent: 2 }), SR);
+  const g = gridNear(a, 20, 40);
+  assert.ok(g.downbeat != null, 'downbeat found');
+  const bar = 4 * 60 / bpm, one = lead + first;
+  const err = ((((g.downbeat - one) / bar) % 1) + 1.5) % 1 - 0.5;
+  assert.ok(Math.abs(err * bar) < 0.03, `downbeat off by ${(err * bar * 1000).toFixed(0)} ms`);
+});
+
+test('even kicks: no bar is guessed', () => {
+  const a = analyzeSamples(track({ bpm: 120, first: 0.3, secs: 40, lead: 1 }), SR);
+  assert.equal(gridNear(a, 20, 40).downbeat, null);
+});
+
+test('finds where a long fade-out starts', () => {
+  const a = analyzeSamples(track({ bpm: 120, first: 0.2, secs: 60, lead: 1, fade: 12 }), SR);
+  assert.ok(a.outro > 48 && a.outro < 57, `outro ${a.outro.toFixed(1)}`);
+  const b = analyzeSamples(track({ bpm: 120, first: 0.2, secs: 60, lead: 1 }), SR);
+  assert.ok(b.outro > 60, `no fade: outro ${b.outro.toFixed(1)}`);
+});
+
+test('mix starts before the fade-out, but never over the last sung line', () => {
+  const a = { bpm: 120, period: 0.5, offset: 0.1, start: 0.5, end: 200.3, outro: 190, duration: 205 };
+  const b = { bpm: 120, period: 0.5, offset: 0.2, start: 1.2, end: 180, duration: 185 };
+  const plain = planMix(a, b);
+  assert.ok(plain.at <= 190 - plain.secs * 0.25 + 1e-6, `before the fade: ${plain.at}`);
+  assert.ok(Math.abs(((plain.at - a.offset) / a.period) % 1) < 1e-6, 'on a beat');
+  const sung = planMix(a, b, { vocalEnd: 195 });
+  assert.ok(sung.at >= 195.3 - 1e-6, `after the singing: ${sung.at}`);
+  assert.ok(sung.at + sung.secs <= a.end + 1e-6);
+});
+
+test('bars line up: a beat into the outgoing bar is a beat into the incoming bar', () => {
+  const a = { period: 0.5, offset: 0.1, downbeat: 0.6 };
+  const b = { period: 0.5, offset: 0.2, downbeat: 1.7 };
+  const pos = alignedPosition(a, b, 0.6 + 10 * 2 + 0.5, 1.7 + 4 * 2);
+  const barPhase = (((pos - 1.7) / 2) % 1 + 1) % 1;
+  assert.ok(Math.abs(barPhase - 0.25) < 1e-6, `bar phase ${barPhase}`);
 });

@@ -1,7 +1,10 @@
 // Sound for your own songs (not for music followed from other apps):
 //  - Karaoke: turns the lead vocal down. Vocals are usually mixed in the
-//    centre, so the left−right difference keeps the instruments and drops the
-//    voice; the bass (also centred) is put back from a low-passed mix.
+//    centre, so the sound is split into centre (L+R) and sides (L−R), and the
+//    voice's range (180 Hz–7 kHz) is taken out of the centre only. Bass, kick,
+//    cymbals and everything panned left or right stay, in stereo. The bands
+//    are split with Linkwitz–Riley filters, so they add back up flat. Part of
+//    the voice can be kept as a guide (karaokeVoice).
 //  - Volume levelling: measures how loud the song is over the last few
 //    seconds and turns quiet songs up / loud ones down (±9 dB).
 //  - Equalizer: 10 bands, ±12 dB.
@@ -20,11 +23,25 @@ export const EQ_BANDS = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const db = (x) => 20 * Math.log10(Math.max(1e-6, x));
 const fromDb = (d) => 10 ** (d / 20);
 const OPEN = 10; // Hz: a high-pass this low lets everything through
+const VOICE_LOW = 180, VOICE_HIGH = 7000; // Hz: the range Karaoke takes out of the centre
+const MONO_DB = -32; // sides this far under the centre: a mono song, Karaoke can't separate the voice
+
+/** Karaoke: the sides' voice-band gain for a kept voice share v (+3 dB at v = 0, flat at v = 1). */
+const sideLift = (v) => 1 + (1 - v) * (Math.SQRT2 - 1);
+
+function rms(analyser, buf) {
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  return db(Math.sqrt(sum / buf.length));
+}
 
 export class AudioFx {
   constructor() {
     this.ctx = null;
     this.karaoke = false;
+    this.voice = 0;     // Karaoke: how much of the voice is kept (0..1)
+    this.onMono = null; // called once per song when Karaoke can't work (a mono song)
     this.level = false;
     this.eq = { on: false, gains: EQ_BANDS.map(() => 0) };
     this.loud = null;   // running loudness estimate (dB)
@@ -43,24 +60,46 @@ export class AudioFx {
     this.dry = g(this.karaoke ? 0 : 1);
     this.input.connect(this.dry);
 
-    // Karaoke path: (L − R) on both sides, plus low-passed (L + R) / 2.
+    // Karaoke path. Centre M = (L+R)/2 and sides S = (L−R)/2, each split into
+    // low / voice / high bands; the centre's voice band is turned down, the
+    // sides go through the same filters (so both stay in phase), then
+    // L = M' + S', R = M' − S'.
     this.wet = g(this.karaoke ? 1 : 0);
     const split = ctx.createChannelSplitter(2);
     this.input.connect(split);
-    const side = g(1), minusR = g(-1);
-    split.connect(side, 0);
-    split.connect(minusR, 1);
-    minusR.connect(side);
-    const hp = filter('highpass', 140);
-    side.connect(hp);
-    const bassMix = g(0.5);
-    split.connect(bassMix, 0);
-    split.connect(bassMix, 1);
-    const lp1 = filter('lowpass', 140), lp2 = filter('lowpass', 140);
-    bassMix.connect(lp1); lp1.connect(lp2);
-    const merge = ctx.createChannelMerger(2);
-    for (const ch of [0, 1]) { hp.connect(merge, 0, ch); lp2.connect(merge, 0, ch); }
+    const mid = g(0.5), side = g(0.5), minusR = g(-1);
+    split.connect(mid, 0); split.connect(mid, 1);
+    split.connect(side, 0); split.connect(minusR, 1); minusR.connect(side);
+    // Linkwitz–Riley (two Butterworth stages): low + high add back up flat.
+    // Web Audio reads a low/high-pass Q in dB: Butterworth's 0.707 is −3.01 dB.
+    const BUTTERWORTH = 20 * Math.log10(Math.SQRT1_2);
+    const lr4 = (from, type, f) => {
+      const a = filter(type, f, BUTTERWORTH), b = filter(type, f, BUTTERWORTH);
+      from.connect(a); a.connect(b);
+      return b;
+    };
+    const bands = (from) => {
+      const rest = lr4(from, 'highpass', VOICE_LOW);
+      return { low: lr4(from, 'lowpass', VOICE_LOW), voice: lr4(rest, 'lowpass', VOICE_HIGH), high: lr4(rest, 'highpass', VOICE_HIGH) };
+    };
+    const m = bands(mid), s = bands(side);
+    const centre = g(1), sides = g(1);
+    this.voiceGain = g(this.voice);
+    m.low.connect(centre); m.high.connect(centre); m.voice.connect(this.voiceGain); this.voiceGain.connect(centre);
+    // A sound panned to one side loses half of itself with the centre's voice
+    // band; the sides' voice band makes up 3 dB of that (none when the voice stays).
+    this.sideVoiceGain = g(sideLift(this.voice));
+    s.low.connect(sides); s.voice.connect(this.sideVoiceGain); this.sideVoiceGain.connect(sides); s.high.connect(sides);
+    const merge = ctx.createChannelMerger(2), minusS = g(-1);
+    centre.connect(merge, 0, 0); centre.connect(merge, 0, 1);
+    sides.connect(merge, 0, 0); sides.connect(minusS); minusS.connect(merge, 0, 1);
     merge.connect(this.wet);
+    // Meters for spotting mono songs (no sides to work with).
+    this.meterMid = ctx.createAnalyser(); this.meterMid.fftSize = 1024;
+    this.meterSide = ctx.createAnalyser(); this.meterSide.fftSize = 1024;
+    mid.connect(this.meterMid); side.connect(this.meterSide);
+    this.monoBuf = new Float32Array(1024);
+    this.monoSecs = 0;
 
     // Levelling: measure the song itself, then a slow gain.
     this.levelGain = g(1);
@@ -106,6 +145,14 @@ export class AudioFx {
     this.wet.gain.setTargetAtTime(on ? 1 : 0, t, 0.08);
   }
 
+  /** How much of the voice Karaoke keeps, 0 (none) to 1 (all of it). */
+  setKaraokeVoice(v) {
+    this.voice = Math.max(0, Math.min(1, Number(v) || 0));
+    if (!this.ctx) return;
+    this.voiceGain.gain.setTargetAtTime(this.voice, this.ctx.currentTime, 0.08);
+    this.sideVoiceGain.gain.setTargetAtTime(sideLift(this.voice), this.ctx.currentTime, 0.08);
+  }
+
   setLevel(on) {
     this.level = !!on;
     if (this.ctx && !on) this.levelGain.gain.setTargetAtTime(1, this.ctx.currentTime, 0.3);
@@ -127,22 +174,31 @@ export class AudioFx {
   }
 
   /** A new song: measure it afresh. */
-  newSong() { this.loud = null; }
+  newSong() { this.loud = null; this.monoSecs = 0; this.monoTold = false; }
 
   /** Each frame while playing. */
   update(dt, playing) {
-    if (!this.ctx || !this.level || !playing) return;
-    this.meterIn.getFloatTimeDomainData(this.buf);
-    let sum = 0;
-    for (let i = 0; i < this.buf.length; i++) sum += this.buf[i] * this.buf[i];
-    const rms = db(Math.sqrt(sum / this.buf.length));
-    if (rms < -55) return; // silence between songs or in breaks
+    if (!this.ctx || !playing) return;
+    if (this.karaoke) this.checkMono(dt);
+    if (!this.level) return;
+    const now = rms(this.meterIn, this.buf);
+    if (now < -55) return; // silence between songs or in breaks
     if (this.loud == null) this.loudFrames = 0;
     // Fast at the start of a song, then a slow running average (~6 s).
     const k = this.loud == null ? 1 : Math.min(1, dt / (this.loudFrames++ < 120 ? 0.8 : 6));
-    this.loud = this.loud == null ? rms : this.loud + (rms - this.loud) * k;
+    this.loud = this.loud == null ? now : this.loud + (now - this.loud) * k;
     const want = Math.min(LEVEL_RANGE[1], Math.max(LEVEL_RANGE[0], LEVEL_TARGET - this.loud));
     this.levelGain.gain.setTargetAtTime(fromDb(want), this.ctx.currentTime, 0.5);
+  }
+
+  /** Karaoke needs stereo: tells onMono() once per song when the sides stay silent for 3 s of music. */
+  checkMono(dt) {
+    if (this.monoTold) return;
+    const centre = rms(this.meterMid, this.monoBuf);
+    if (centre < -45) return; // quiet parts don't count
+    const sides = rms(this.meterSide, this.monoBuf);
+    this.monoSecs = sides - centre < MONO_DB ? this.monoSecs + dt : 0;
+    if (this.monoSecs > 3) { this.monoTold = true; this.onMono?.(); }
   }
 
   /** Fades the main player to `to` (0..1) over `secs`. */

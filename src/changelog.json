@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.15.0",
+    "date": "2026-10-05",
+    "notes": [
+      "AutoMix starts the blend on the first beat of a bar, and the next song comes in on its own first bar, so the two line up phrase by phrase.",
+      "AutoMix waits for the last sung line to finish (with synced lyrics), so the next song never plays over the singing.",
+      "When a song fades out slowly, AutoMix starts the blend as the fade begins instead of near the silent end.",
+      "Karaoke sounds much better: it takes out only the voice and keeps the bass, drums and cymbals, in stereo.",
+      "New: Voice in Karaoke (Settings › Playback) keeps some of the singer as a guide to sing along with.",
+      "Karaoke tells you when a song is mono, since it can’t take the voice out of those."
+    ]
+  },
+  {
     "version": "2.14.0",
     "date": "2026-10-04",
     "notes": [

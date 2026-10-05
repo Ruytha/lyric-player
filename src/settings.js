@@ -49,7 +49,8 @@ export const SCHEMA = [
   { key: 'eqRow', type: 'custom' },
   { key: 'eqGains', type: 'text', def: '0,0,0,0,0,0,0,0,0,0', max: 100, hidden: true },
   { key: 'levelVolume', label: 'Even out volume', hint: 'Quiet songs are turned up and loud ones down, so every song plays about as loud (your own songs)', type: 'toggle', def: false },
-  { key: 'karaoke', label: 'Karaoke', hint: 'Turns the lead vocal down on your own songs. Works best on songs with the voice in the middle; some echo of it stays', type: 'toggle', def: false },
+  { key: 'karaoke', label: 'Karaoke', hint: 'Takes the lead voice out of your own songs and keeps the bass, drums and cymbals. Works on songs with the voice in the middle; some echo of it stays', type: 'toggle', def: false },
+  { key: 'karaokeVoice', label: 'Voice in Karaoke', hint: 'Keep some of the singer as a guide to sing along with', type: 'range', min: 0, max: 0.6, step: 0.05, def: 0, fmt: (v) => (v ? `${Math.round(v * 100)}%` : 'None') },
   { key: 'smartShuffle', label: 'Smart shuffle', hint: 'Shuffle plays songs you haven’t heard lately first and mixes up the artists', type: 'toggle', def: true },
 
   { section: 'Artwork' },
