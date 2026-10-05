@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.16.0",
+    "date": "2026-10-05",
+    "notes": [
+      "New: Lyric Player Help in the ••• menu (or press F1) opens the documentation. Settings has a Help link at the bottom too.",
+      "The documentation is redone in the style of Apple’s developer docs, with a screenshot or two for every topic, more than twice as many as before.",
+      "In the documentation: click any screenshot to zoom it, fold topic groups in the sidebar, and pages fade smoothly from one to the next."
+    ]
+  },
+  {
     "version": "2.15.0",
     "date": "2026-10-05",
     "notes": [

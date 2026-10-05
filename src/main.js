@@ -47,6 +47,8 @@ import { buildHotkeysRow, buildRemoteRow, applyLyricLook } from './extras-ui.js'
 import { analyzeUrl, planMix, alignedPosition } from './automix.js';
 import { showEqualizer, parseGains, presetOf, EQ_PRESETS } from './eq-ui.js';
 
+const DOCS_URL = new URL('/docs/lyricviewer/', UPDATE_SITE).href; // the documentation (••• › Lyric Player Help, F1)
+
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
 const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
 const TTML_EXT = ['ttml', 'xml'];
@@ -205,6 +207,7 @@ const ui = new PlayerUI(audio, {
       case 'offset-reset': setOffset(0); break;
       case 'translation': toggleTranslation(); break;
       case 'settings': settingsPanel.open(); break;
+      case 'help': openHelp(); break;
       case 'demo': loadDemo(); break;
       case 'find-lyrics': openLyricSearch(); break;
       case 'find-art': openArtSearch(); break;
@@ -461,6 +464,12 @@ const artSearch = new ArtSearchDialog($('artSearch'), {
       : `${r.album} has no animated cover, so its still cover is used`);
   },
 });
+
+// Help: the documentation on the website, in the browser (the desktop app
+// opens links there too). topic is an article id, e.g. 'customizing'.
+function openHelp(topic = '') {
+  window.open(topic ? `${DOCS_URL}#${topic}` : DOCS_URL, '_blank', 'noopener');
+}
 
 // Search Apple Music: previews, links to Apple Music and the iTunes Store, lyrics.
 const catalog = new CatalogDialog($('catalogSearch'), {
@@ -1153,6 +1162,7 @@ audio.addEventListener('error', () => {
 addEventListener('keydown', (e) => {
   // Ctrl+, (Cmd+, on a Mac): Settings, as in every desktop app.
   if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key === ',') { e.preventDefault(); settingsPanel.toggle(); return; }
+  if (e.key === 'F1') { e.preventDefault(); openHelp(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   const key = e.key;
