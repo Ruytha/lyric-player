@@ -7,7 +7,7 @@ on:
 
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,7 +17,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-          runs-on: ubuntu-24.04
       - name: Install
         working-directory: android-app
         run: npm install
@@ -35,6 +34,13 @@ jobs:
           cp ../ios-app/resources/AppIcon-1024.png assets/icon-foreground.png
           cp ../ios-app/resources/splash-2732.png assets/splash.png
           npx capacitor-assets generate --android --iconBackgroundColor '#1e1e1e' --splashBackgroundColor '#1e1e1e'
+      - name: Fix icon resources
+        working-directory: android-app
+        run: |
+          RES=android/app/src/main/res
+          if ! ls $RES/mipmap-*/ic_launcher_background.* >/dev/null 2>&1; then
+            rm -rf $RES/mipmap-anydpi-v26
+          fi
       - name: Sync and build debug APK
         working-directory: android-app
         run: |
