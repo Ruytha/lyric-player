@@ -4,7 +4,6 @@
 // price there. Nothing here downloads songs.
 
 import { artworkAt } from './apple-art.js';
-import { getSongDownloadUrl } from './song-downloader.js';
 
 const SEARCH = 'https://itunes.apple.com/search';
 
@@ -53,9 +52,7 @@ export function toSong(s, storefront = 'us') {
     explicit: s.trackExplicitness === 'explicit',
     thumb: artworkAt(s.artworkUrl100, 120),
     artwork: artworkAt(s.artworkUrl100, 600),
-    // Full track from song-downloader.js, not Apple's 30-second preview.
-    preview: s.trackId ? getSongDownloadUrl(s.trackId) : null,
-    downloadUrl: s.trackId ? getSongDownloadUrl(s.trackId) : null,
+    preview: s.previewUrl || null,
     appleMusicUrl: view ? withParam(view, 'app', 'music') : null,
     storeUrl: view ? withParam(view, 'app', 'itunes') : null,
     price: formatPrice(s.trackPrice, s.currency),

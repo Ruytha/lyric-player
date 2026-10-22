@@ -58,6 +58,7 @@
                 <div class="mi-submenu" id="miTools" role="group" aria-label="Lyrics Tools" hidden>
                   <button role="menuitem" data-action="sync-editor"><span class="mi-text"><span class="mi-label">Edit Lyric Timing…</span></span><svg class="mi-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M10 2.5h4"/></svg></button>
                   <button role="menuitem" data-action="tap-sync"><span class="mi-text"><span class="mi-label">Tap to Sync Lyrics…</span></span><svg class="mi-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><path d="M7.4 7.4a6.5 6.5 0 0 0 0 9.2M16.6 7.4a6.5 6.5 0 0 1 0 9.2M4.6 4.6a10.5 10.5 0 0 0 0 14.8M19.4 4.6a10.5 10.5 0 0 1 0 14.8"/></svg></button>
+                  <button role="menuitem" data-action="save-ttml" id="saveTtmlItem" hidden><span class="mi-text"><span class="mi-label">Save Lyrics as .ttml</span></span><svg class="mi-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></button>
                   <button role="menuitem" data-action="amll-submit" id="amllItem" hidden><span class="mi-text"><span class="mi-label">Send to AMLL TTML DB…</span></span><svg class="mi-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></button>
                   <div class="menu-row mi-offset">
                     <span class="mi-text"><span class="mi-label">Lyric Offset</span></span>
@@ -286,7 +287,7 @@
   </div>
   <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
 
-  <input type="file" id="audioInput" accept=".mp3,.m4a,.aac,.flac,.ogg,.opus,.wav,audio/*" hidden>
+  <input type="file" id="audioInput" accept=".mp3,.m4a,.aac,.flac,.ogg,.opus,.wav,.ec3,.eac3,.ac3,.ac4,.mp4,audio/*" hidden>
   <input type="file" id="ttmlInput" accept=".ttml,.xml,application/ttml+xml,application/xml,text/xml" hidden>
   <audio id="audio" preload="auto"></audio>
   <!-- Last in the page: Windows decides drag vs click from the last app-region on top, so the buttons must come after the drag strip (.fp-top). -->

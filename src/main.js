@@ -50,7 +50,8 @@ import { showEqualizer, parseGains, presetOf, EQ_PRESETS } from './eq-ui.js';
 const DOCS_URL = new URL('/docs/lyricviewer/', UPDATE_SITE).href; // the documentation (••• › Lyric Player Help, F1)
 
 const JSMEDIATAGS_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js';
-const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav'];
+const AUDIO_EXT = ['mp3', 'm4a', 'aac', 'flac', 'ogg', 'opus', 'wav', 'ec3', 'eac3', 'ac3', 'ac4', 'mp4'];
+const DOLBY_RE = /\.(ec3|eac3|ac3|ac4)$/i; // Dolby Digital (Plus) / Atmos streams
 const TTML_EXT = ['ttml', 'xml'];
 const IMAGE_EXT = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
 
@@ -229,6 +230,7 @@ const ui = new PlayerUI(audio, {
       case 'karaoke': settings.set('karaoke', !settings.get('karaoke')); break;
       case 'eq': openEqualizer(); break;
       case 'sleep': sleep.cycle(); break;
+      case 'save-ttml': saveTtml(); break;
       case 'amll-submit': submitToAmll(); break;
     }
   },
@@ -931,7 +933,7 @@ function setAudioSource(src, name, { owned = false } = {}) {
   state.audioUrl = src;
   state.audioOwned = owned;
   state.audioName = name;
-  ui.setBadge(/\.(flac|wav|aiff?|alac)$/i.test(name) ? 'Lossless' : '');
+  ui.setBadge(/\.(flac|wav|aiff?|alac)$/i.test(name) ? 'Lossless' : DOLBY_RE.test(name) ? 'Dolby' : '');
   state.prefsKey = null;
   state.tagMeta = {};
   state.fileMeta = metaFromFilename(name);
@@ -1153,7 +1155,9 @@ function updateMediaSession(title, artist) {
 audio.addEventListener('volumechange', savePrefs);
 audio.addEventListener('error', () => {
   if (!audio.src) return;
-  toast(`Can’t play ${state.audioName || 'this file'}. This browser may not support its format.`, { error: true });
+  // Chromium (Chrome, the desktop app) has no Dolby decoder; Edge on Windows and Safari do.
+  if (DOLBY_RE.test(state.audioName || '')) toast(`Can’t play ${state.audioName}: Dolby Atmos / Dolby Digital Plus needs Microsoft Edge or Safari. Chrome and the desktop app can’t decode it.`, { error: true, ms: 9000 });
+  else toast(`Can’t play ${state.audioName || 'this file'}. This browser may not support its format.`, { error: true });
 });
 
 // ---------------------------------------------------------------------------
@@ -1766,20 +1770,26 @@ function updateLyricItems() {
   const m = state.model;
   const tr = $('translateItem');
   if (tr) tr.hidden = !m || m.lines.every((l) => l.translation) || !m.lines.length;
+  $('saveTtmlItem').hidden = !state.ttmlText;
   const amll = $('amllItem');
   if (amll) amll.hidden = !m || m.timing === 'none' || !['file', 'link'].includes(state.lyricsSource);
+}
+
+/** Downloads the lyrics shown, as a .ttml file. */
+function saveTtml() {
+  if (!state.ttmlText) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([state.ttmlText], { type: 'application/ttml+xml' }));
+  a.download = (state.ttmlName || 'lyrics.ttml').replace(/(\.(ttml|xml))?$/i, '.ttml');
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 // Your own lyrics → AMLL TTML DB, where AMLL Player and this app find lyrics.
 async function submitToAmll() {
   if (!state.ttmlText) return;
   try { await navigator.clipboard.writeText(state.ttmlText); } catch { /* clipboard blocked */ }
-  const blob = new Blob([state.ttmlText], { type: 'application/ttml+xml' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = state.ttmlName || 'lyrics.ttml';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  saveTtml();
   window.open('https://github.com/amll-dev/amll-ttml-db/issues/new/choose', '_blank', 'noopener');
   toast('Saved the .ttml and copied it. On the AMLL TTML DB page, pick the lyrics submission form and add the file (a GitHub account is needed).', { ms: 9000 });
 }

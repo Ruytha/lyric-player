@@ -12,11 +12,12 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { Readable } = require('node:stream');
 
-const AUDIO_EXT = new Set(['.mp3', '.m4a', '.aac', '.flac', '.ogg', '.opus', '.wav', '.alac', '.aif', '.aiff', '.wma']);
+const AUDIO_EXT = new Set(['.mp3', '.m4a', '.aac', '.flac', '.ogg', '.opus', '.wav', '.alac', '.aif', '.aiff', '.wma', '.ec3', '.eac3', '.ac3', '.ac4', '.mp4']);
 const TTML_EXT = new Set(['.ttml']);
 const MIME = {
   '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac', '.ogg': 'audio/ogg',
   '.opus': 'audio/ogg', '.wav': 'audio/wav', '.alac': 'audio/mp4', '.aif': 'audio/aiff', '.aiff': 'audio/aiff', '.wma': 'audio/x-ms-wma',
+  '.ec3': 'audio/eac3', '.eac3': 'audio/eac3', '.ac3': 'audio/ac3', '.ac4': 'audio/ac4', '.mp4': 'audio/mp4',
 };
 const MAX_FILES = 50000;
 

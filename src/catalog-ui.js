@@ -1,9 +1,8 @@
-// "Search Apple Music…" window: find a song in Apple's catalogue, import
-// the full track through song-downloader.js, open it in Apple Music, buy it
-// on iTunes, or get its synced lyrics as a .ttml file.
+// "Search Apple Music…" window: find a song in Apple's catalogue, hear its
+// 30-second preview, open it in Apple Music, buy it on iTunes, or get its
+// synced lyrics as a .ttml file. Nothing here downloads songs.
 
 import { searchCatalog, ttmlFileName } from './catalog.js';
-import { getSongDownloadUrl } from './song-downloader.js';
 import { fetchMotionArt } from './apple-art.js';
 import { MotionArtwork } from './motion-art.js';
 import { searchLyrics, getTtml, SOURCE_NAMES } from './lyrics-search.js';
@@ -20,17 +19,12 @@ const ICON = {
 
 export class CatalogDialog {
   /**
-   * options:
-   * - onImport(file, song) receives the full downloaded track as a File so the
-   *   main player/library can import it.
-   * - onPreview is kept as a compatibility hook and is called before import.
-   * - motionArt() and appleLyrics() read the matching settings.
+   * options: onPreview() is called when a preview starts (to pause the player),
+   * motionArt() and appleLyrics() read the matching settings.
    */
-  constructor(root, { onPreview, onImport, motionArt = () => true, appleLyrics = () => false, downloadFormat = 'atmos-m4a' } = {}) {
+  constructor(root, { onPreview, motionArt = () => true, appleLyrics = () => false } = {}) {
     this.root = root;
     this.onPreview = onPreview;
-    this.onImport = onImport;
-    this.downloadFormat = downloadFormat;
     this.motionArt = motionArt;
     this.appleLyrics = appleLyrics;
     this.input = root.querySelector('input');
@@ -43,11 +37,16 @@ export class CatalogDialog {
     this.timer = 0;
     this.lyrics = new Map(); // song id → { state, text, note }
 
-    // Kept for compatibility with the old UI. Full tracks are fetched through
-    // song-downloader.js instead of Apple's 30-second previewUrl.
     this.audio = new Audio();
     this.audio.preload = 'none';
     this.playingId = null;
+    this.audio.addEventListener('timeupdate', () => this.updateProgress());
+    this.audio.addEventListener('ended', () => this.stopPreview());
+    this.audio.addEventListener('error', () => {
+      if (!this.playingId) return;
+      this.stopPreview();
+      this.status.textContent = 'This preview couldn’t play. Check your connection.';
+    });
 
     this.input.addEventListener('input', () => {
       clearTimeout(this.timer);
@@ -61,21 +60,21 @@ export class CatalogDialog {
       else if (e.key === 'Enter' && e.target === this.input) {
         e.preventDefault();
         clearTimeout(this.timer);
-        if (this.sel >= 0) this.importSong(this.results[this.sel]); else this.search();
+        if (this.sel >= 0) this.togglePreview(this.results[this.sel]); else this.search();
       }
     });
     this.list.addEventListener('click', (e) => {
       const row = e.target.closest('[data-i]');
       if (!row) return;
       const i = Number(row.dataset.i);
-      if (e.target.closest('[data-import]')) this.importSong(this.results[i]);
+      if (e.target.closest('[data-preview]')) this.togglePreview(this.results[i]);
       this.select(i, { show: true });
     });
     this.detail.addEventListener('click', (e) => {
       const song = this.results[this.sel];
       if (!song) return;
       if (e.target.closest('[data-back]')) { this.root.classList.remove('showing-detail'); this.list.querySelector('.sel')?.focus(); }
-      else if (e.target.closest('[data-import]')) this.importSong(song);
+      else if (e.target.closest('[data-preview]')) this.togglePreview(song);
       else if (e.target.closest('[data-lyrics]')) this.getLyrics(song);
       else if (e.target.closest('[data-save]')) this.saveLyrics(song);
     });
@@ -137,7 +136,7 @@ export class CatalogDialog {
     return `<div class="ls-row cat-row${i === this.sel ? ' sel' : ''}" id="cat-row-${i}" data-i="${i}" role="option" aria-selected="${i === this.sel}" tabindex="-1">
       <span class="cat-thumb">
         <img src="${esc(r.thumb)}" alt="" loading="lazy">
-        <button class="cat-play${playing ? ' on' : ''}" data-import type="button" aria-label="Import ${esc(r.title)}">${playing ? ICON.pause : ICON.play}</button>
+        ${r.preview ? `<button class="cat-play${playing ? ' on' : ''}" data-preview type="button" aria-label="${playing ? 'Stop preview of' : 'Preview'} ${esc(r.title)}">${playing ? ICON.pause : ICON.play}</button>` : ''}
       </span>
       <span class="ls-main"><span class="ls-title">${esc(r.title)}${r.explicit ? ' <span class="cat-e" title="Explicit" aria-label="Explicit">E</span>' : ''}</span><span class="ls-sub">${esc([r.artist, r.album].filter(Boolean).join(' · '))}</span></span>
       <span class="ls-meta"><span class="ls-src">${fmtDur(r.duration)}</span></span>
@@ -174,11 +173,11 @@ export class CatalogDialog {
       <h3 class="cat-title">${esc(r.title)}${r.explicit ? ' <span class="cat-e" title="Explicit" aria-label="Explicit">E</span>' : ''}</h3>
       <div class="cat-artist">${esc(r.artist)}</div>
       <div class="cat-info">${esc(info)}</div>
-      <button class="cat-preview${playing ? ' on' : ''}" data-import type="button">
+      ${r.preview ? `<button class="cat-preview${playing ? ' on' : ''}" data-preview type="button">
         <span class="cat-preview-icon">${playing ? ICON.pause : ICON.play}</span>
-        <span class="cat-preview-label">${playing ? 'Importing…' : 'Import Full Song'}</span>
+        <span class="cat-preview-label">${playing ? 'Stop Preview' : 'Preview'}</span>
         <span class="cat-preview-bar" aria-hidden="true"><span></span></span>
-      </button>
+      </button>` : '<div class="cat-info">No preview for this song.</div>'}
       <div class="cat-actions">
         ${r.appleMusicUrl ? `<a class="pill pill-small" href="${esc(r.appleMusicUrl)}" target="_blank" rel="noopener">Open in Apple Music</a>` : ''}
         ${r.storeUrl && r.price ? `<a class="pill pill-small pill-ghost" href="${esc(r.storeUrl)}" target="_blank" rel="noopener">Buy on iTunes · ${esc(r.price)}</a>` : ''}
@@ -211,101 +210,52 @@ export class CatalogDialog {
     } catch { /* still cover only */ }
   }
 
-  // --- Full-track import ------------------------------------------------------
+  // --- Preview ---------------------------------------------------------------
 
-  async importSong(r) {
-    if (!r?.id) return;
-
-    // Prevent duplicate imports while this song is being fetched.
-    if (this.playingId === r.id) return;
-
+  togglePreview(r) {
+    if (!r?.preview) return;
+    if (this.playingId === r.id) { this.stopPreview(); return; }
     this.onPreview?.();
     this.playingId = r.id;
+    this.audio.src = r.preview;
+    this.audio.play().catch(() => {});
     this.refreshPreviewButtons();
-    this.status.textContent = `Importing "${r.title}"…`;
-    this.root.classList.add('loading');
-
-    try {
-      const url = getSongDownloadUrl(
-        r.id,
-        this.downloadFormat,
-        r.storefront || 'en'
-      );
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Download server returned HTTP ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const ext = this.downloadFormat === 'alac-flac' ? 'flac'
-        : this.downloadFormat === 'atmos-mp4' ? 'mp4'
-        : this.downloadFormat === 'aac-m4a' ? 'm4a'
-        : this.downloadFormat === 'mp3-320' ? 'mp3'
-        : 'm4a';
-
-      const safe = `${r.artist ? `${r.artist} - ` : ''}${r.title || `Track_${r.id}`}`
-        .replace(/[\\/:*?"<>|]/g, '_')
-        .replace(/\\s+/g, ' ')
-        .trim();
-
-      const file = new File([blob], `${safe}.${ext}`, {
-        type: blob.type || (ext === 'mp3' ? 'audio/mpeg' : 'audio/mp4')
-      });
-
-      if (this.onImport) {
-        await this.onImport(file, r);
-        this.status.textContent = `Imported "${r.title}".`;
-      } else {
-        // Safe fallback when the host player has not supplied an importer.
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
-        this.status.textContent = `Downloaded "${r.title}".`;
-      }
-    } catch (err) {
-      console.error('[Catalog] Full-track import failed:', err);
-      this.status.textContent = `Couldn’t import "${r.title}". ${err.message || ''}`.trim();
-    } finally {
-      this.root.classList.remove('loading');
-      this.playingId = null;
-      this.refreshPreviewButtons();
-    }
   }
 
   stopPreview() {
+    if (!this.playingId) return;
     this.playingId = null;
+    this.audio.pause();
+    this.audio.removeAttribute('src');
+    this.audio.load();
     this.refreshPreviewButtons();
   }
 
   refreshPreviewButtons() {
     for (const row of this.list.children) {
       const r = this.results[Number(row.dataset.i)];
-      const btn = row.querySelector('[data-import]');
+      const btn = row.querySelector('[data-preview]');
       if (!btn || !r) continue;
       const on = r.id === this.playingId;
       btn.classList.toggle('on', on);
       btn.innerHTML = on ? ICON.pause : ICON.play;
-      btn.setAttribute('aria-label', `${on ? 'Importing' : 'Import'} ${r.title}`);
+      btn.setAttribute('aria-label', `${on ? 'Stop preview of' : 'Preview'} ${r.title}`);
     }
     const r = this.results[this.sel];
-    const btn = this.detail.querySelector('[data-import]');
+    const btn = this.detail.querySelector('.cat-preview');
     if (!btn || !r) return;
     const on = r.id === this.playingId;
     btn.classList.toggle('on', on);
     btn.querySelector('.cat-preview-icon').innerHTML = on ? ICON.pause : ICON.play;
-    btn.querySelector('.cat-preview-label').textContent = on ? 'Importing…' : 'Import Full Song';
+    btn.querySelector('.cat-preview-label').textContent = on ? 'Stop Preview' : 'Preview';
+    this.updateProgress();
   }
 
   updateProgress() {
-    // Kept as a no-op for compatibility with the existing UI/CSS.
     const bar = this.detail.querySelector('.cat-preview-bar > span');
-    if (bar) bar.style.width = '0%';
+    if (!bar) return;
+    const on = this.results[this.sel]?.id === this.playingId && this.audio.duration > 0;
+    bar.style.width = on ? `${(this.audio.currentTime / this.audio.duration) * 100}%` : '0%';
   }
 
   // --- Lyrics ------------------------------------------------------------------
