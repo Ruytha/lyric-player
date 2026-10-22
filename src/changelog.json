@@ -1,5 +1,12 @@
 [
   {
+    "version": "2.18.0",
+    "date": "2026-10-22",
+    "notes": [
+      "Dolby Atmos songs, such as Atmos .m4a files, now play in Chrome and the desktop app too. They’re converted to stereo when you open them; the first time, this downloads a 31 MB decoder."
+    ]
+  },
+  {
     "version": "2.17.0",
     "date": "2026-10-22",
     "notes": [

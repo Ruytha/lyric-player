@@ -46,6 +46,7 @@ import { lyricsPlainText } from './lyric-index.js';
 import { buildHotkeysRow, buildRemoteRow, applyLyricLook } from './extras-ui.js';
 import { analyzeUrl, planMix, alignedPosition } from './automix.js';
 import { showEqualizer, parseGains, presetOf, EQ_PRESETS } from './eq-ui.js';
+import { isDolby, dolbyToWav } from './dolby.js';
 
 const DOCS_URL = new URL('/docs/lyricviewer/', UPDATE_SITE).href; // the documentation (••• › Lyric Player Help, F1)
 
@@ -1153,11 +1154,29 @@ function updateMediaSession(title, artist) {
   });
 }
 audio.addEventListener('volumechange', savePrefs);
-audio.addEventListener('error', () => {
+// Chromium (Chrome, the desktop app) has no Dolby decoder; Edge on Windows and
+// Safari do. Where it fails, the song is converted to stereo and played from that.
+audio.addEventListener('error', async () => {
   if (!audio.src) return;
-  // Chromium (Chrome, the desktop app) has no Dolby decoder; Edge on Windows and Safari do.
-  if (DOLBY_RE.test(state.audioName || '')) toast(`Can’t play ${state.audioName}: Dolby Atmos / Dolby Digital Plus needs Microsoft Edge or Safari. Chrome and the desktop app can’t decode it.`, { error: true, ms: 9000 });
-  else toast(`Can’t play ${state.audioName || 'this file'}. This browser may not support its format.`, { error: true });
+  const url = state.audioUrl, name = state.audioName || 'this file', resume = !audio.paused;
+  const bytes = url && url !== state.dolbyWav ? await fetch(url).then((r) => r.arrayBuffer()).catch(() => null) : null;
+  if (state.audioUrl !== url) return; // another song meanwhile
+  if (!bytes || !isDolby(new Uint8Array(bytes), name)) { toast(`Can’t play ${name}. This browser may not support its format.`, { error: true }); return; }
+  toast('Converting Dolby Atmos to stereo… The first time, this downloads a 31 MB decoder.', { key: 'dolby', ms: 120000 });
+  try {
+    const wav = URL.createObjectURL(await dolbyToWav(bytes));
+    if (state.audioUrl !== url) { URL.revokeObjectURL(wav); $('toasts').querySelector('[data-key="dolby"]')?.remove(); return; }
+    if (state.audioOwned) URL.revokeObjectURL(url);
+    state.audioUrl = state.dolbyWav = wav;
+    state.audioOwned = true;
+    ui.setBadge('Dolby');
+    reactor.prepareSource(wav);
+    audio.src = wav;
+    toast(`Playing ${name} (Dolby Atmos, converted to stereo)`, { key: 'dolby' });
+    if (resume) audio.play().catch(() => {});
+  } catch (e) {
+    toast(`Couldn’t convert ${name}: ${e.message}`, { key: 'dolby', error: true });
+  }
 });
 
 // ---------------------------------------------------------------------------
