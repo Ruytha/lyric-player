@@ -327,6 +327,17 @@ body.dragover.over-art .art-drop { opacity: 1; }
   background: rgba(255, 255, 255, 0.12);
   color: var(--label-2);
 }
+.badge.dolby {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0;
+  background: none;
+  font-size: 1.15em;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.badge.dolby svg { height: 0.72em; width: auto; fill: currentColor; }
 
 /* Transport: three large controls, centred. */
 .transport {

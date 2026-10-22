@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.18.1",
+    "date": "2026-10-22",
+    "notes": [
+      "Dolby Atmos songs play louder, about as loud as stereo songs, without clipping.",
+      "Dolby Atmos songs show the Dolby Atmos logo under the progress bar, as in Apple Music."
+    ]
+  },
+  {
     "version": "2.18.0",
     "date": "2026-10-22",
     "notes": [

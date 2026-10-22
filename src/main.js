@@ -46,7 +46,7 @@ import { lyricsPlainText } from './lyric-index.js';
 import { buildHotkeysRow, buildRemoteRow, applyLyricLook } from './extras-ui.js';
 import { analyzeUrl, planMix, alignedPosition } from './automix.js';
 import { showEqualizer, parseGains, presetOf, EQ_PRESETS } from './eq-ui.js';
-import { isDolby, dolbyToWav } from './dolby.js';
+import { isDolby, isAtmos, dolbyToWav } from './dolby.js';
 
 const DOCS_URL = new URL('/docs/lyricviewer/', UPDATE_SITE).href; // the documentation (••• › Lyric Player Help, F1)
 
@@ -1164,15 +1164,16 @@ audio.addEventListener('error', async () => {
   if (!bytes || !isDolby(new Uint8Array(bytes), name)) { toast(`Can’t play ${name}. This browser may not support its format.`, { error: true }); return; }
   toast('Converting Dolby Atmos to stereo… The first time, this downloads a 31 MB decoder.', { key: 'dolby', ms: 120000 });
   try {
+    const atmos = isAtmos(new Uint8Array(bytes));
     const wav = URL.createObjectURL(await dolbyToWav(bytes));
     if (state.audioUrl !== url) { URL.revokeObjectURL(wav); $('toasts').querySelector('[data-key="dolby"]')?.remove(); return; }
     if (state.audioOwned) URL.revokeObjectURL(url);
     state.audioUrl = state.dolbyWav = wav;
     state.audioOwned = true;
-    ui.setBadge('Dolby');
+    ui.setBadge(atmos ? 'Dolby Atmos' : 'Dolby');
     reactor.prepareSource(wav);
     audio.src = wav;
-    toast(`Playing ${name} (Dolby Atmos, converted to stereo)`, { key: 'dolby' });
+    toast(`Playing ${name} (${atmos ? 'Dolby Atmos' : 'Dolby'}, converted to stereo)`, { key: 'dolby' });
     if (resume) audio.play().catch(() => {});
   } catch (e) {
     toast(`Couldn’t convert ${name}: ${e.message}`, { key: 'dolby', error: true });

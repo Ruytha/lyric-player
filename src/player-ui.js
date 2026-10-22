@@ -82,8 +82,13 @@ export class PlayerUI {
 
   /** Small format badge between the times, like Apple Music's "Lossless". */
   setBadge(text) {
-    this.el.badge.textContent = text || '';
-    this.el.badge.hidden = !text;
+    const b = this.el.badge;
+    const dolby = /^Dolby/.test(text || '');
+    b.classList.toggle('dolby', dolby);
+    // Dolby's double-D mark before the name, as Apple Music shows it.
+    if (dolby) b.innerHTML = `<svg viewBox="0 0 25 16" aria-hidden="true"><path d="M0 0h4a8 8 0 0 1 0 16H0zM25 0h-4a8 8 0 0 0 0 16h4z"/></svg>${text}`;
+    else b.textContent = text || '';
+    b.hidden = !text;
   }
 
   setLyricsShown(on) {
