@@ -871,6 +871,7 @@ body.dragover.over-art .drop-overlay { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .marquee.scrolling > span { animation: none; }
+  .bg canvas { transform: none !important; }  /* no beat zoom; the dim layer still lifts */
 }
 
 /* ------------------------------------------------------------------------ */

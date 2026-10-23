@@ -13,9 +13,11 @@
 //     clamped, 40% black scrim), drawn full screen and then again through a
 //     slowly morphing pinch mesh behind the lyrics. Dithered to avoid banding.
 // The bass gently scales the rotating layers, like the original's spectrum
-// pulse. Same interface as AmllBackground: setImage / setActive / apply / update.
+// pulse, and the whole canvas zooms on each kick while the dim layer lifts
+// when the song is loud (as the other two styles do). Same interface as AmllBackground: setImage / setActive / apply / update.
 
 import { PORTRAIT, LANDSCAPE } from './lyricify-mesh-data.js';
+import { Spring } from './spring.js';
 
 const ARTWORK_TRANSITION = 0.5;     // s
 const LYRICS_MODE_TRANSITION = 0.25; // s
@@ -289,6 +291,9 @@ export class LyricifyBackground {
     this.lyricsStart = -1;
     this.active = true;
     this.pulse = 0;
+    this.beat = new Spring({ stiffness: 320, damping: 18, mass: 1, value: 1, precision: 0.0002 });
+    this.lastBeat = 1;
+    this.lastLift = -1;
     this.settings = { scale: 0.5, fps: 60, flow: 1, react: 0.6, pulse: 0.5, still: false };
     this.sinceFrame = Infinity;
     this.src = undefined;
@@ -451,6 +456,20 @@ export class LyricifyBackground {
     // Bass pulse: the same shaping as the original's spectrum pulse.
     const target = playing ? Math.min(1, (reactor?.bass || 0) * this.settings.react * 1.4) : 0;
     this.pulse += (target - this.pulse) * (1 - Math.exp(-dt / (target > this.pulse ? 0.04 : 0.18)));
+    // Throb: the canvas zooms on the kick and the dim layer lifts with loudness.
+    const bass = playing ? (reactor?.bass || 0) : 0, energy = playing ? (reactor?.energy || 0) : 0;
+    this.beat.retarget(1 + 0.09 * bass * this.settings.pulse + 0.025 * energy * this.settings.react);
+    this.beat.step(dt);
+    const b = this.beat.value;
+    if (Math.abs(b - this.lastBeat) > 0.0003) {
+      this.lastBeat = b;
+      this.canvas.style.transform = b === 1 ? '' : `scale(${b.toFixed(4)})`;
+    }
+    const lift = Math.round((0.6 * energy + 0.4 * bass) * this.settings.react * 100) / 100;
+    if (lift !== this.lastLift) {
+      this.lastLift = lift;
+      this.container.style.setProperty('--lift', lift);
+    }
     const transitioning = this.transitionStart >= 0 || this.lyricsStart >= 0;
     this.sinceFrame += dt;
     const interval = 1 / Math.max(1, this.settings.fps);
